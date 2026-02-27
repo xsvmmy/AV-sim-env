@@ -118,3 +118,20 @@ export async function fetchStatistics() {
 export async function exportScenarios() {
   return fetchAPI('/api/export/json');
 }
+
+/**
+ * Fetch a random CSV-sourced RL scenario
+ */
+export async function getRLScenarioRandom() {
+  return fetchAPI('/api/rl/scenarios/random');
+}
+
+/**
+ * Run the RL agent pipeline for a CSV scenario by response_id
+ */
+export async function simulateWithRL(responseId) {
+  return fetchAPI('/api/rl/simulate', {
+    method: 'POST',
+    body: JSON.stringify({ response_id: responseId }),
+  });
+}

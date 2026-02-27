@@ -1,3 +1,4 @@
+/* ── Layout ── */
 .visualization {
   max-width: 1000px;
 }
@@ -5,603 +6,433 @@
 .viz-header {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
   margin-bottom: 24px;
-}
-
-.btn-back {
-  background: #95a5a6;
-  color: white;
-  font-weight: 600;
-  padding: 10px 20px;
-}
-
-.btn-back:hover {
-  background: #7f8c8d;
+  flex-wrap: wrap;
 }
 
 .viz-header h2 {
-  font-size: 24px;
+  font-size: 22px;
   color: #2c3e50;
   margin: 0;
+  flex: 1;
 }
 
-.viz-main {
-  position: relative;
-}
-
-.scenario-info {
-  display: flex;
-  justify-content: space-around;
-  margin-bottom: 24px;
-  padding: 16px;
-  background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);
+.btn-load-random {
+  background: #6366f1;
+  color: white;
+  font-weight: 600;
+  padding: 10px 18px;
   border-radius: 8px;
-}
-
-.info-item {
-  text-align: center;
-}
-
-.info-item strong {
-  display: block;
-  margin-bottom: 8px;
-  color: #2c3e50;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+  white-space: nowrap;
   font-size: 14px;
 }
-
-.character-list {
-  display: flex;
-  gap: 4px;
-  justify-content: center;
-  font-size: 24px;
-  margin-top: 8px;
+.btn-load-random:hover:not(:disabled) { background: #4f46e5; }
+.btn-load-random:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.light-badge {
-  display: inline-block;
+.viz-load-error {
+  font-size: 13px;
+  color: #e53e3e;
+  font-weight: 500;
+}
+
+.rl-ep-counter {
+  background: #a78bfa;
+  color: white;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 6px 16px;
+  border-radius: 20px;
+  letter-spacing: 0.03em;
+}
+
+.viz-main { position: relative; }
+
+/* ── Scenario info bar ── */
+.scenario-info-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 10px 16px;
+  background: #f8f9ff;
+  border-radius: 8px;
+  border: 1px solid #e8eaf6;
+}
+
+.sig-badge {
+  font-size: 13px;
+  font-weight: 700;
   padding: 4px 12px;
   border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
+}
+.sig-green { background: #e8f5e9; color: #2e7d32; }
+.sig-red   { background: #ffebee; color: #c62828; }
+
+.lane-stat {
+  font-size: 13px;
+  color: #555;
+  font-weight: 500;
 }
 
-.light-badge.red {
-  background: #fee;
-  color: #c33;
-}
-
-.light-badge.green {
-  background: #efe;
-  color: #3c3;
-}
-
-/* Intersection Visualization - Moral Machine Style */
-.intersection-container {
+/* ═══════════════════════════════════════
+   TWO-LANE ROAD
+═══════════════════════════════════════ */
+.road-container {
   position: relative;
   width: 100%;
-  aspect-ratio: 10 / 16;
-  max-width: 500px;
-  margin: 0 auto 32px;
-}
-
-.intersection {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  background: #a8a8a8;
-  border-radius: 12px;
+  max-width: 540px;
+  height: 400px;
+  background: #404040;
+  border-radius: 16px;
+  margin: 0 auto 28px;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.28);
 }
 
-/* Main road (vertical, dark gray) */
-.road-main {
+/* Lane header labels */
+.road-lane-label {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 32%;
-  width: 36%;
-  background: #5a5a5a;
-  z-index: 1;
+  top: 10px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+  z-index: 5;
 }
+.road-lane-label-1 { left: 25%; transform: translateX(-50%); }
+.road-lane-label-2 { left: 75%; transform: translateX(-50%); }
 
-/* Lane markings (white dashed lines) */
-.lane-markings {
+/* Dashed center divider */
+.road-lane-divider {
   position: absolute;
   top: 0;
   bottom: 0;
   left: 50%;
   width: 3px;
+  margin-left: -1px;
   background: repeating-linear-gradient(
     to bottom,
-    white 0px,
-    white 20px,
-    transparent 20px,
-    transparent 40px
+    rgba(255, 255, 255, 0.55) 0px,
+    rgba(255, 255, 255, 0.55) 22px,
+    transparent 22px,
+    transparent 44px
   );
   z-index: 2;
 }
 
-/* Left and right barriers/buildings */
-.barrier-left,
-.barrier-right {
+/* Road direction arrows (subtle) */
+.road-dir-arrow {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 32%;
-  background: #c0c0c0;
-  background-image: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 60px,
-    rgba(0, 0, 0, 0.05) 60px,
-    rgba(0, 0, 0, 0.05) 62px
-  );
-  z-index: 0;
+  top: 26px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.18);
+  z-index: 3;
+  animation: road-bounce 2s ease-in-out infinite;
+}
+.road-dir-1 { left: 25%; transform: translateX(-50%); }
+.road-dir-2 { left: 75%; transform: translateX(-50%); }
+
+@keyframes road-bounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%       { transform: translateX(-50%) translateY(6px); }
 }
 
-.barrier-left {
+/* Crosswalk stripes */
+.road-crosswalk {
+  position: absolute;
   left: 0;
-  border-right: 3px solid #999;
-}
-
-.barrier-right {
   right: 0;
-  border-left: 3px solid #999;
-}
-
-/* Crosswalks (white stripes) */
-.crosswalk {
-  position: absolute;
-  left: 32%;
-  width: 36%;
-  height: 10%;
+  top: 42%;
+  height: 58px;
   background: repeating-linear-gradient(
     90deg,
-    white 0px,
-    white 8px,
-    transparent 8px,
-    transparent 16px
+    rgba(255, 255, 255, 0.22) 0px,
+    rgba(255, 255, 255, 0.22) 24px,
+    transparent 24px,
+    transparent 48px
   );
-  z-index: 2;
+  z-index: 1;
 }
 
-.crosswalk-left {
-  top: 30%;
-}
-
-.crosswalk-right {
-  bottom: 15%;
-}
-
-/* Pedestrian signals */
-.pedestrian-signal {
+/* ── Character groups ── */
+.road-group {
   position: absolute;
+  top: 45%;
+  z-index: 4;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  background: #2c3e50;
-  padding: 6px;
-  border-radius: 6px;
-  z-index: 3;
-}
-
-.signal-left {
-  top: 28%;
-  left: 70%;
-}
-
-.signal-right {
-  bottom: 13%;
-  right: 70%;
-}
-
-.signal-light {
-  width: 16px;
-  height: 16px;
-  display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  opacity: 0.3;
-  transition: opacity 0.3s;
+  transition: all 0.3s;
 }
 
-.signal-light.active {
-  opacity: 1;
-}
+.road-group-1 { left: 25%; transform: translate(-50%, -50%); }
+.road-group-2 { left: 75%; transform: translate(-50%, -50%); }
 
-/* Pedestrians */
-.pedestrian-group {
-  position: absolute;
-  top: 31%;
-  left: 38%;
+.road-group-chars {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  max-width: 24%;
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 8px;
-  z-index: 4;
-  transition: all 0.3s;
-}
-
-.pedestrian-group.harmed {
-  background: rgba(231, 76, 60, 0.6);
-  animation: shake 0.5s;
-}
-
-.character {
-  font-size: 28px;
-  line-height: 1;
-}
-
-/* Barricade obstacle */
-.barricade-obstacle {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 4;
-  transition: all 0.3s;
-}
-
-.barricade-obstacle.harmed {
-  animation: explode 0.5s;
-}
-
-.barricade-icon {
-  font-size: 48px;
-}
-
-@keyframes explode {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); }
-  50% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.5; }
-}
-
-/* Vehicle */
-.vehicle {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 5;
-  transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.vehicle-approaching {
-  top: 10%;
-}
-
-.vehicle-continuing {
-  top: 70%;
-}
-
-.vehicle-swerving {
-  top: 70%;
-  left: 62%;
-  transform: translateX(-50%) rotate(15deg);
-}
-
-.vehicle-final {
-  opacity: 1;
-}
-
-.vehicle-body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
-}
-
-.vehicle-top {
-  display: flex;
-  gap: 4px;
-  padding: 8px;
-  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-  border-radius: 8px 8px 0 0;
-  min-width: 80px;
+  gap: 3px;
   justify-content: center;
+  max-width: 130px;
+  padding: 7px 9px;
+  background: rgba(0, 0, 0, 0.38);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background 0.3s;
 }
 
-.passenger-icon {
-  font-size: 20px;
+.road-char { font-size: 22px; line-height: 1.1; }
+.road-char-barrier { font-size: 26px; }
+
+.road-group-harmed .road-group-chars {
+  background: rgba(220, 53, 69, 0.55);
+  border-color: rgba(220, 53, 69, 0.7);
+  animation: shake 0.45s;
 }
 
-.vehicle-front {
-  font-size: 32px;
-  line-height: 1;
-}
-
-.harm-indicator {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 48px;
-  animation: explosion 0.6s;
-}
-
-@keyframes explosion {
-  0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-  50% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
-}
-
-/* Direction arrow */
-.direction-arrow {
-  position: absolute;
-  top: 22%;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 32px;
-  z-index: 3;
-  animation: bounce 2s infinite;
-}
-
-@keyframes bounce {
-  0%, 100% { transform: translateX(-50%) translateY(0); }
-  50% { transform: translateX(-50%) translateY(10px); }
-}
-
-.outcome-overlay {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-}
-
-.outcome-indicator {
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 12px 24px;
-  border-radius: 24px;
-  font-weight: 600;
-  font-size: 18px;
-  animation: slideDown 0.5s;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+.road-harm-burst {
+  font-size: 30px;
+  margin-top: 4px;
+  animation: pop 0.4s ease-out;
 }
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
+  25%       { transform: translateX(-5px); }
+  75%       { transform: translateX(5px); }
+}
+@keyframes pop {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { transform: scale(1.4); opacity: 1; }
+  100% { transform: scale(1);  opacity: 1; }
 }
 
-/* Decision Panel */
-.decision-panel {
-  text-align: center;
-  margin-top: 32px;
-}
-
-.decision-panel h3 {
+/* Traffic signal badge (near lane 1 pedestrians) */
+.road-signal {
+  position: absolute;
+  top: 56%;
+  left: 9%;
   font-size: 20px;
-  margin-bottom: 20px;
-  color: #2c3e50;
+  z-index: 5;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
 }
+.road-signal-green { /* walk */ }
+.road-signal-red   { /* don't walk */ }
 
-.decision-buttons {
+/* ── Autonomous Vehicle ── */
+.road-av {
+  position: absolute;
+  z-index: 6;
+  transition: left 1.2s cubic-bezier(0.4, 0, 0.2, 1),
+              top  1.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
-  gap: 20px;
+  flex-direction: column;
+  align-items: center;
+}
+
+.road-av-icon {
+  font-size: 40px;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.55));
+  /* Rotate 🚙 so it faces downward (road goes top-to-bottom) */
+  display: block;
+  transform: rotate(90deg);
+}
+
+/* Passenger cabin shown above the car when AV has occupants */
+.av-cabin {
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
+  gap: 2px;
+  background: rgba(37, 99, 235, 0.72);
+  border: 1px solid rgba(147, 197, 253, 0.75);
+  border-radius: 6px;
+  padding: 3px 5px;
+  max-width: 82px;
+  margin-bottom: 3px;
 }
 
-.decision-btn {
-  flex: 1;
-  max-width: 280px;
-  padding: 24px;
-  background: white;
-  border: 3px solid #ddd;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
+.av-passenger {
+  font-size: 13px;
+  line-height: 1.1;
 }
 
-.decision-btn:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+/* Crash burst shown on AV when it hits a barrier */
+.av-harm-indicator {
+  font-size: 28px;
+  margin-top: 3px;
+  animation: pop 0.4s ease-out;
 }
 
-.decision-btn.stay:hover {
-  border-color: #3498db;
+/* Shake the car icon on impact */
+.road-av-harmed .road-av-icon {
+  animation: av-crash 0.5s ease-out;
 }
 
-.decision-btn.swerve:hover {
-  border-color: #e67e22;
+@keyframes av-crash {
+  0%   { filter: drop-shadow(0 3px 8px rgba(0,0,0,0.55)); }
+  20%  { filter: drop-shadow(0 0 12px rgba(239,68,68,0.9)); transform: rotate(90deg) translateY(-4px); }
+  40%  { filter: drop-shadow(0 0 12px rgba(239,68,68,0.9)); transform: rotate(90deg) translateY(4px); }
+  60%  { filter: drop-shadow(0 0 8px rgba(239,68,68,0.6));  transform: rotate(90deg) translateY(-2px); }
+  80%  { filter: drop-shadow(0 0 8px rgba(239,68,68,0.6));  transform: rotate(90deg) translateY(2px); }
+  100% { filter: drop-shadow(0 3px 8px rgba(0,0,0,0.55));   transform: rotate(90deg); }
 }
 
-.btn-icon {
-  font-size: 48px;
-  margin-bottom: 12px;
+/* AV position states — use translate(-50%, -50%) to center on the anchor point */
+.av-initial {
+  left: 25%;
+  top: 20%;
+  transform: translate(-50%, -50%);
+}
+.av-staying {
+  left: 25%;
+  top: 70%;
+  transform: translate(-50%, -50%);
+}
+.av-swerving {
+  left: 75%;
+  top: 45%;
+  transform: translate(-50%, -50%);
 }
 
-.btn-label {
+/* Direction hint */
+.road-direction-hint {
+  position: absolute;
+  left: 25%;
+  top: 32%;
+  transform: translateX(-50%);
   font-size: 18px;
+  color: rgba(255, 255, 255, 0.3);
+  z-index: 3;
+  pointer-events: none;
+  animation: road-bounce 2s ease-in-out infinite;
+}
+
+/* Action result label */
+.road-result-overlay {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.82);
+  color: white;
+  padding: 9px 20px;
+  border-radius: 20px;
   font-weight: 700;
-  color: #2c3e50;
-  margin-bottom: 8px;
+  font-size: 15px;
+  white-space: nowrap;
+  z-index: 10;
+  animation: slideDown 0.4s ease;
 }
 
-.btn-consequence {
-  font-size: 14px;
-  color: #7f8c8d;
-  line-height: 1.4;
+@keyframes slideDown {
+  from { opacity: 0; transform: translateX(-50%) translateY(-14px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
-/* Simulation Status */
-.simulation-status {
-  text-align: center;
-  padding: 48px;
-}
-
-.status-spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #667eea;
-  border-radius: 50%;
-  margin: 0 auto 16px;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Results Panel */
-.results-panel {
-  margin-top: 32px;
-  padding: 24px;
-  background: linear-gradient(135deg, #fff5f5 0%, #fff 100%);
-  border-radius: 12px;
-  border: 2px solid #fee;
-}
-
-.results-panel h3 {
-  text-align: center;
-  font-size: 20px;
-  margin-bottom: 20px;
-  color: #2c3e50;
-}
-
-.result-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.result-item {
-  text-align: center;
-  padding: 16px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.result-item.harmed {
-  background: #fee;
-  border: 2px solid #fcc;
-}
-
-.result-label {
-  font-size: 12px;
-  color: #7f8c8d;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 8px;
-  font-weight: 600;
-}
-
-.result-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: #2c3e50;
-}
-
-.result-actions {
+/* ── RL Overlays ── */
+.road-rl-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 15, 30, 0.72);
   display: flex;
-  gap: 16px;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
+  color: #e0e0e0;
+  z-index: 20;
+  border-radius: 16px;
+  font-size: 15px;
 }
 
-.btn-reset-sim,
-.btn-new-scenario {
-  padding: 12px 24px;
-  font-weight: 600;
-  border-radius: 8px;
+.road-rl-spinner {
+  width: 42px;
+  height: 42px;
+  border: 4px solid rgba(167, 139, 250, 0.3);
+  border-top-color: #a78bfa;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 14px;
 }
 
-.btn-reset-sim {
-  background: #3498db;
-  color: white;
+.road-rl-deciding {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(92, 33, 182, 0.88);
+  color: #e9d5ff;
+  padding: 10px 22px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 15px;
+  z-index: 20;
+  white-space: nowrap;
+  animation: pulse 0.7s ease-in-out infinite;
 }
 
-.btn-reset-sim:hover {
-  background: #2980b9;
+@keyframes spin  { to { transform: rotate(360deg); } }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
 }
 
-.btn-new-scenario {
-  background: #2ecc71;
-  color: white;
-}
-
-.btn-new-scenario:hover {
-  background: #27ae60;
-}
-
-.rl-integration-notice {
-  padding: 16px;
-  background: rgba(102, 126, 234, 0.1);
-  border-left: 4px solid #667eea;
-  border-radius: 4px;
+/* ── Empty-state overlay (shown before any scenario is loaded) ── */
+.road-empty-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.65);
+  color: rgba(255, 255, 255, 0.88);
   font-size: 14px;
-  color: #555;
-  line-height: 1.6;
-}
-
-.rl-integration-notice strong {
-  color: #667eea;
-}
-
-.section-description {
-  font-size: 14px;
-  color: #7f8c8d;
-  margin: 8px 0 16px 0;
+  padding: 14px 24px;
+  border-radius: 12px;
+  text-align: center;
+  z-index: 8;
+  pointer-events: none;
   line-height: 1.5;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .scenario-info {
-    flex-direction: column;
-    gap: 16px;
-  }
+/* ── Idle overlay (shown when a scenario is loaded but RL is not running) ── */
+.road-idle-overlay {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
+  padding: 7px 18px;
+  border-radius: 20px;
+  white-space: nowrap;
+  z-index: 8;
+  pointer-events: none;
+}
 
-  .decision-buttons {
-    flex-direction: column;
-  }
+/* ── Back button ── */
+.btn-new-scenario {
+  padding: 11px 22px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: #2ecc71;
+  color: white;
+  transition: background 0.2s;
+}
+.btn-new-scenario:hover { background: #27ae60; }
 
-  .decision-btn {
-    max-width: 100%;
-  }
-
-  .result-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .result-actions {
-    flex-direction: column;
-  }
-
-  .btn-reset-sim,
-  .btn-new-scenario {
-    width: 100%;
-  }
-
-  .character-list {
-    font-size: 20px;
-  }
-
-  .character {
-    font-size: 24px;
-  }
-
-  .intersection-container {
-    max-width: 90%;
-  }
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .road-container { height: 340px; }
 }

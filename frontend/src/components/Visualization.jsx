@@ -1,305 +1,237 @@
-import React, { useState, useEffect } from 'react';
-import { simulateScenario } from '../utils/api';
+import React, { useState, useCallback } from 'react';
+import RLPanel from './RLPanel';
+import { getRLScenarioRandom, createScenario } from '../utils/api';
 import './Visualization.css';
 
-/**
- * Visualization Component
- *
- * Displays an interactive top-down view of the intersection scenario.
- * Shows the autonomous vehicle, passengers, pedestrians, and traffic light.
- * Allows user to choose between "Stay in Lane" or "Swerve" outcomes.
- *
- * Future RL Integration:
- * - Display agent's decision confidence
- * - Show policy heatmap for state visualization
- * - Animate agent decision-making process
- */
-function Visualization({ scenario, onBack }) {
-  const [simulationState, setSimulationState] = useState('ready'); // ready, simulating, completed
-  const [outcome, setOutcome] = useState(null);
-  const [animationPhase, setAnimationPhase] = useState('initial'); // initial, action, result
-  const [error, setError] = useState(null);
+function Visualization({ scenario, onScenarioLoaded }) {
+  const [rlPlayback, setRlPlayback]       = useState(null);
+  const [loadingScenario, setLoadingScenario] = useState(false);
+  const [loadError, setLoadError]         = useState(null);
 
   const getCharacterEmoji = (name) => {
     const emojiMap = {
-      'Man': '👨',
-      'Woman': '👩',
-      'Pregnant': '🤰',
-      'Stroller': '👶',
-      'OldMan': '👴',
-      'OldWoman': '👵',
-      'Boy': '👦',
-      'Girl': '👧',
-      'Homeless': '🧑',
-      'LargeWoman': '👩',
-      'LargeMan': '👨',
-      'Criminal': '🦹',
-      'MaleExecutive': '👔',
-      'FemaleExecutive': '👩‍💼',
-      'FemaleAthlete': '🏃‍♀️',
-      'MaleAthlete': '🏃‍♂️',
-      'FemaleDoctor': '👩‍⚕️',
-      'MaleDoctor': '👨‍⚕️',
-      'Dog': '🐕',
-      'Cat': '🐈',
-      'Barricade': '🚧'
+      'Man': '👨', 'Woman': '👩', 'Pregnant': '🤰', 'Stroller': '👶',
+      'OldMan': '👴', 'OldWoman': '👵', 'Boy': '👦', 'Girl': '👧',
+      'Homeless': '🧑', 'LargeWoman': '👩', 'LargeMan': '👨',
+      'Criminal': '🦹', 'MaleExecutive': '👔', 'FemaleExecutive': '👩‍💼',
+      'FemaleAthlete': '🏃‍♀️', 'MaleAthlete': '🏃‍♂️',
+      'FemaleDoctor': '👩‍⚕️', 'MaleDoctor': '👨‍⚕️',
+      'Dog': '🐕', 'Cat': '🐈', 'Barricade': '🚧',
     };
     return emojiMap[name] || '👤';
   };
 
-  const hasBarricade = scenario.pedestrians.includes('Barricade');
-
-  const handleDecision = async (action) => {
-    setSimulationState('simulating');
-    setAnimationPhase('action');
-    setError(null);
-
+  const handleLoadRandom = async () => {
+    setLoadingScenario(true);
+    setLoadError(null);
     try {
-      // Simulate API call delay for animation
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      const result = await simulateScenario(scenario.id, action);
-      setOutcome(result);
-
-      // Progress through animation phases
-      setTimeout(() => setAnimationPhase('result'), 600);
-      setTimeout(() => setSimulationState('completed'), 1200);
+      const csvScenario = await getRLScenarioRandom();
+      const created = await createScenario({
+        passengers:    csvScenario.passengers,
+        pedestrians:   csvScenario.pedestrians,
+        traffic_light: csvScenario.traffic_light,
+      });
+      onScenarioLoaded({ ...csvScenario, ...created });
     } catch (err) {
-      setError(err.message || 'Failed to run simulation');
-      setSimulationState('ready');
-      setAnimationPhase('initial');
-      console.error('Simulation error:', err);
+      setLoadError(err.message || 'Failed to load scenario');
+      console.error('Error loading random scenario:', err);
+    } finally {
+      setLoadingScenario(false);
     }
   };
 
-  const handleReset = () => {
-    setSimulationState('ready');
-    setOutcome(null);
-    setAnimationPhase('initial');
-    setError(null);
+  // Driven by RLPanel — each phase transition updates the road animation
+  const handleRLStep = useCallback((step) => {
+    setRlPlayback(step.phase === 'done' ? null : step);
+  }, []);
+
+  // RL episode scenario takes priority over the scenario prop while running;
+  // when RL finishes (rlPlayback → null), the scenario prop keeps characters visible.
+  const displayScenario    = rlPlayback?.scenario ?? scenario;
+  const displayAction      = rlPlayback?.result?.action;
+  const displayHarmedGroup = rlPlayback?.result?.harmed_group;
+
+  // New fields with fallbacks for backward compatibility
+  const lane1Chars     = displayScenario?.lane1_chars     ?? displayScenario?.pedestrians ?? [];
+  const lane2Chars     = displayScenario?.lane2_chars     ?? (displayScenario?.passengers?.filter(p => p !== 'Barricade') ?? []);
+  const lane1IsBarrier = displayScenario?.lane1_is_barrier ?? false;
+  const lane2IsBarrier = displayScenario?.lane2_is_barrier ?? (displayScenario?.passengers?.includes('Barricade') ?? false);
+  const passengersInAV = displayScenario?.passengers_in_av ?? [];
+
+  const activeAnimPhase = (() => {
+    if (!rlPlayback) return 'initial';
+    switch (rlPlayback.phase) {
+      case 'scenario':  return 'initial';
+      case 'deciding':  return 'action';
+      case 'animating': return 'action';
+      case 'result':    return 'result';
+      default:          return 'initial';
+    }
+  })();
+
+  const getAVClass = () => {
+    if (activeAnimPhase === 'initial') return 'av-initial';
+    if (activeAnimPhase === 'action' || activeAnimPhase === 'result') {
+      if (displayAction === 'swerve') return 'av-swerving';
+      if (displayAction === 'stay')   return 'av-staying';
+    }
+    return 'av-initial';
   };
 
-  const getVehiclePosition = () => {
-    if (animationPhase === 'initial') return 'vehicle-approaching';
-    if (animationPhase === 'action' && outcome?.outcome_choice === 'swerve') {
-      return 'vehicle-swerving';
-    }
-    if (animationPhase === 'action' && outcome?.outcome_choice === 'stay') {
-      return 'vehicle-continuing';
-    }
-    return 'vehicle-final';
-  };
+  const isLane1Harmed = activeAnimPhase === 'result' && displayHarmedGroup === 'pedestrians';
+  const isLane2Harmed = activeAnimPhase === 'result' && displayHarmedGroup === 'passengers';
+  const isAVHarmed    = (isLane1Harmed && lane1IsBarrier) || (isLane2Harmed && lane2IsBarrier);
+
+  // Disable the load button while the RL agent is actively running
+  const isRLRunning = !!rlPlayback;
 
   return (
     <div className="visualization container">
       <div className="viz-header">
-        <button className="btn-back" onClick={onBack}>
-          ← Back to Configuration
-        </button>
         <h2>Simulation Visualization</h2>
+
+        {loadError && (
+          <span className="viz-load-error">{loadError}</span>
+        )}
+
+        <button
+          className="btn-load-random"
+          onClick={handleLoadRandom}
+          disabled={loadingScenario || isRLRunning}
+          title={isRLRunning ? 'Wait for the current run to finish' : 'Load a new random scenario'}
+        >
+          {loadingScenario ? 'Loading…' : '🎲 Random Scenario'}
+        </button>
+
+        {rlPlayback?.episodeNum != null && (
+          <div className="rl-ep-counter">
+            Episode {rlPlayback.episodeNum} / {rlPlayback.totalEpisodes}
+          </div>
+        )}
       </div>
 
-      {error && (
-        <div className="error-message">{error}</div>
-      )}
-
       <div className="viz-main section">
-        <div className="scenario-info">
-          <div className="info-item">
-            <strong>Passengers:</strong> {scenario.passengers.length}
-            <div className="character-list">
-              {scenario.passengers.map((p, i) => (
-                <span key={i}>{getCharacterEmoji(p)}</span>
-              ))}
-            </div>
-          </div>
-          <div className="info-item">
-            <strong>{hasBarricade ? 'Obstacle:' : 'Pedestrians:'}</strong> {hasBarricade ? 'Barricade' : scenario.pedestrians.length}
-            <div className="character-list">
-              {scenario.pedestrians.map((p, i) => (
-                <span key={i}>{getCharacterEmoji(p)}</span>
-              ))}
-            </div>
-          </div>
-          <div className="info-item">
-            <strong>Pedestrian Signal:</strong>
-            <span className={`light-badge ${scenario.traffic_light.toLowerCase()}`}>
-              {scenario.traffic_light === 'Red' ? '🚫 Don\'t Walk' : '🚶 Walk'}
+
+        {/* Compact info bar — only shown when a scenario is loaded */}
+        {displayScenario && (
+          <div className="scenario-info-bar">
+            <span className={`sig-badge ${displayScenario.traffic_light === 'Green' ? 'sig-green' : 'sig-red'}`}>
+              {displayScenario.traffic_light === 'Green' ? '🚶 Walk' : '🚫 Don\'t Walk'}
+            </span>
+            {passengersInAV.length > 0 && (
+              <span className="lane-stat">
+                🚙 AV · {passengersInAV.length} passenger{passengersInAV.length !== 1 ? 's' : ''}
+              </span>
+            )}
+            <span className="lane-stat">
+              Lane 1 · {lane1IsBarrier ? '🚧 Barrier' : `${lane1Chars.length} pedestrian${lane1Chars.length !== 1 ? 's' : ''}`}
+            </span>
+            <span className="lane-stat">
+              Lane 2 · {lane2IsBarrier ? '🚧 Barrier' : `${lane2Chars.length} person${lane2Chars.length !== 1 ? 's' : ''}`}
             </span>
           </div>
-        </div>
+        )}
 
-        <div className="intersection-container">
-          <div className="intersection">
-            {/* Main road (vertical) */}
-            <div className="road-main"></div>
+        {/* ── Two-lane road ── */}
+        <div className="road-container">
 
-            {/* Lane markings */}
-            <div className="lane-markings"></div>
+          <div className="road-lane-label road-lane-label-1">LANE 1 — AV</div>
+          <div className="road-lane-label road-lane-label-2">LANE 2 — SWERVE</div>
 
-            {/* Left barrier/building */}
-            <div className="barrier-left"></div>
+          <div className="road-lane-divider" />
+          <div className="road-dir-arrow road-dir-1">▼</div>
+          <div className="road-dir-arrow road-dir-2">▼</div>
+          <div className="road-crosswalk" />
 
-            {/* Right barrier/building */}
-            <div className="barrier-right"></div>
-
-            {/* Left crosswalk */}
-            <div className="crosswalk crosswalk-left"></div>
-
-            {/* Right crosswalk */}
-            <div className="crosswalk crosswalk-right"></div>
-
-            {/* Left pedestrian signal */}
-            <div className="pedestrian-signal signal-left">
-              <div className={`signal-light ${scenario.traffic_light === 'Red' ? 'active' : ''}`}>
-                🚫
+          {/* Lane 1: pedestrians or barrier — only rendered once a scenario is loaded */}
+          {displayScenario && (
+            <div className={`road-group road-group-1 ${isLane1Harmed && !lane1IsBarrier ? 'road-group-harmed' : ''}`}>
+              <div className="road-group-chars">
+                {lane1IsBarrier
+                  ? <span className="road-char road-char-barrier">🚧🚧</span>
+                  : lane1Chars.map((p, i) => (
+                      <span key={i} className="road-char" title={p}>{getCharacterEmoji(p)}</span>
+                    ))
+                }
               </div>
-              <div className={`signal-light ${scenario.traffic_light === 'Green' ? 'active' : ''}`}>
-                🚶
-              </div>
+              {isLane1Harmed && !lane1IsBarrier && <div className="road-harm-burst">💥</div>}
             </div>
+          )}
 
-            {/* Right pedestrian signal */}
-            <div className="pedestrian-signal signal-right">
-              <div className={`signal-light ${scenario.traffic_light === 'Red' ? 'active' : ''}`}>
-                🚫
-              </div>
-              <div className={`signal-light ${scenario.traffic_light === 'Green' ? 'active' : ''}`}>
-                🚶
-              </div>
+          {/* Traffic signal — only shown once a scenario is loaded */}
+          {displayScenario && (
+            <div className={`road-signal ${displayScenario.traffic_light === 'Green' ? 'road-signal-green' : 'road-signal-red'}`}>
+              {displayScenario.traffic_light === 'Green' ? '🚶' : '🚫'}
             </div>
+          )}
 
-            {/* Pedestrians or Barricade */}
-            {hasBarricade ? (
-              <div className={`barricade-obstacle ${animationPhase === 'result' && outcome?.outcome_choice === 'stay' ? 'harmed' : ''}`}>
-                <div className="barricade-icon">🚧</div>
+          {/* Lane 2: pedestrians or barrier — only rendered once a scenario is loaded */}
+          {displayScenario && (
+            <div className={`road-group road-group-2 ${isLane2Harmed && !lane2IsBarrier ? 'road-group-harmed' : ''}`}>
+              <div className="road-group-chars">
+                {lane2IsBarrier
+                  ? <span className="road-char road-char-barrier">🚧🚧</span>
+                  : lane2Chars.map((p, i) => (
+                      <span key={i} className="road-char" title={p}>{getCharacterEmoji(p)}</span>
+                    ))
+              }
               </div>
-            ) : (
-              <div className={`pedestrian-group ${animationPhase === 'result' && outcome?.harmed_group === 'pedestrians' ? 'harmed' : ''}`}>
-                {scenario.pedestrians.map((pedestrian, index) => (
-                  <div key={index} className="character pedestrian">
-                    {getCharacterEmoji(pedestrian)}
-                  </div>
+              {isLane2Harmed && !lane2IsBarrier && <div className="road-harm-burst">💥</div>}
+            </div>
+          )}
+
+          {/* Autonomous vehicle */}
+          <div className={`road-av ${getAVClass()} ${isAVHarmed ? 'road-av-harmed' : ''}`}>
+            {passengersInAV.length > 0 && (
+              <div className="av-cabin">
+                {passengersInAV.map((p, i) => (
+                  <span key={i} className="av-passenger" title={p}>{getCharacterEmoji(p)}</span>
                 ))}
               </div>
             )}
-
-            {/* Vehicle with passengers */}
-            <div className={`vehicle ${getVehiclePosition()}`}>
-              <div className="vehicle-body">
-                <div className="vehicle-top">
-                  {scenario.passengers.map((passenger, index) => (
-                    <div key={index} className="passenger-icon">
-                      {getCharacterEmoji(passenger)}
-                    </div>
-                  ))}
-                </div>
-                <div className="vehicle-front">🚙</div>
-              </div>
-              {animationPhase === 'result' && outcome?.harmed_group === 'passengers' && (
-                <div className="harm-indicator">💥</div>
-              )}
-            </div>
-
-            {/* Direction arrow */}
-            {animationPhase === 'initial' && (
-              <div className="direction-arrow">⬇️</div>
-            )}
-
-            {/* Outcome overlay */}
-            {animationPhase === 'result' && outcome && (
-              <div className="outcome-overlay">
-                <div className="outcome-indicator">
-                  {outcome.outcome_choice === 'stay' ? '⬇️ Stayed in Lane' : '↘️ Swerved'}
-                </div>
-              </div>
-            )}
+            <div className="road-av-icon">🚙</div>
+            {isAVHarmed && <div className="av-harm-indicator">💥</div>}
           </div>
+
+          {/* Empty-state prompt — shown before any scenario is loaded */}
+          {!scenario && !rlPlayback && (
+            <div className="road-empty-overlay">
+              <span>Click <strong>🎲 Random Scenario</strong> above to load a dilemma</span>
+            </div>
+          )}
+
+          {/* Idle prompt — shown after a scenario is loaded but RL hasn't started yet */}
+          {scenario && !rlPlayback && (
+            <div className="road-idle-overlay">
+              <span>Use the RL Panel below to run the simulation</span>
+            </div>
+          )}
+
+          {/* Action result label */}
+          {activeAnimPhase === 'result' && (
+            <div className="road-result-overlay">
+              {displayAction === 'stay' ? '⬇️ Stayed in Lane 1' : '↘️ Swerved to Lane 2'}
+            </div>
+          )}
+
+          {/* RL loading overlay */}
+          {rlPlayback?.phase === 'loading' && (
+            <div className="road-rl-overlay">
+              <div className="road-rl-spinner" />
+              <p>Loading scenario…</p>
+            </div>
+          )}
+
+          {/* RL deciding overlay */}
+          {rlPlayback?.phase === 'deciding' && (
+            <div className="road-rl-deciding">🤖 Agent deciding…</div>
+          )}
         </div>
-
-        {/* Decision buttons */}
-        {simulationState === 'ready' && (
-          <div className="decision-panel">
-            <h3>Choose Vehicle Action:</h3>
-            <div className="decision-buttons">
-              <button
-                className="decision-btn stay"
-                onClick={() => handleDecision('stay')}
-              >
-                <div className="btn-icon">⬇️</div>
-                <div className="btn-label">Stay in Lane</div>
-                <div className="btn-consequence">
-                  {hasBarricade
-                    ? 'Hits barricade, harms passengers'
-                    : `Hits ${scenario.pedestrians.length} pedestrian${scenario.pedestrians.length > 1 ? 's' : ''}`}
-                </div>
-              </button>
-              <button
-                className="decision-btn swerve"
-                onClick={() => handleDecision('swerve')}
-              >
-                <div className="btn-icon">↘️</div>
-                <div className="btn-label">Swerve</div>
-                <div className="btn-consequence">
-                  {hasBarricade
-                    ? 'Avoids barricade, continues safely'
-                    : `Swerves to avoid pedestrians, harms ${scenario.passengers.length} passenger${scenario.passengers.length > 1 ? 's' : ''}`}
-                </div>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Simulation in progress */}
-        {simulationState === 'simulating' && (
-          <div className="simulation-status">
-            <div className="status-spinner"></div>
-            <p>Simulating outcome...</p>
-          </div>
-        )}
-
-        {/* Results panel */}
-        {simulationState === 'completed' && outcome && (
-          <div className="results-panel">
-            <h3>Simulation Results</h3>
-            <div className="result-grid">
-              <div className="result-item">
-                <div className="result-label">Action Taken</div>
-                <div className="result-value">
-                  {outcome.outcome_choice === 'stay' ? '⬆️ Stayed in Lane' : '↗️ Swerved'}
-                </div>
-              </div>
-              <div className="result-item harmed">
-                <div className="result-label">Harmed Group</div>
-                <div className="result-value">
-                  {outcome.harmed_group === 'passengers' ? '🚗 Passengers' : '🚶 Pedestrians'}
-                </div>
-              </div>
-              <div className="result-item">
-                <div className="result-label">Number Harmed</div>
-                <div className="result-value">{outcome.harmed_count}</div>
-              </div>
-            </div>
-
-            <div className="result-actions">
-              <button className="btn-reset-sim" onClick={handleReset}>
-                Try Different Outcome
-              </button>
-              <button className="btn-new-scenario" onClick={onBack}>
-                Create New Scenario
-              </button>
-            </div>
-
-            {/* Future RL Integration Display */}
-            <div className="rl-integration-notice">
-              <p>
-                <strong>Future Enhancement:</strong> This panel will display RL agent decisions,
-                confidence scores, and policy information once the training module is integrated.
-              </p>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* RLPanel only appears once a scenario has been loaded.
+          Pass the loaded scenario so the agent always trains on the same one. */}
+      {scenario && <RLPanel scenario={scenario} onRLStep={handleRLStep} />}
     </div>
   );
 }
