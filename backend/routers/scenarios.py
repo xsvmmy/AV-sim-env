@@ -2,9 +2,11 @@
 API Routes for Scenario Management
 
 This module defines all REST API endpoints for scenario operations.
-Includes CRUD operations and simulation execution.
+Includes CRUD operations, simulation execution, and RL simulation.
 """
 
+import os
+import random
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -15,7 +17,9 @@ from models import (
     ScenarioUpdate,
     ScenarioResponse,
     SimulationOutcome,
-    CharacterType
+    CharacterType,
+    RLSimulateRequest,
+    RLSimulateResponse,
 )
 from modules.scenario_config import (
     validate_scenario,
@@ -24,6 +28,15 @@ from modules.scenario_config import (
 )
 from modules.data_storage import ScenarioStorage
 from modules.simulation_logic import SimulationEngine
+from modules.csv_loader import load_csv_scenarios
+from modules.voting import (
+    compute_q_values,
+    compute_credence_dispersion,
+    select_voting_method,
+    nash_vote,
+    variance_vote,
+)
+from modules.rl_agent import MoralRLAgent, VOTING_ACTIONS
 
 # Create router instance
 router = APIRouter(
@@ -33,6 +46,32 @@ router = APIRouter(
 
 # Initialize simulation engine
 simulation_engine = SimulationEngine()
+
+# ---------------------------------------------------------------------------
+# RL globals — loaded once at module import time
+# ---------------------------------------------------------------------------
+
+_CSV_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "filtered_responses.csv")
+_RL_STATE_PATH = os.path.join(os.path.dirname(__file__), "..", "rl_state.json")
+
+# Load CSV scenarios (list of dicts); keyed dict for fast lookup
+_csv_scenarios_list: List[dict] = []
+_csv_scenarios_by_id: dict = {}
+
+try:
+    _csv_scenarios_list = load_csv_scenarios(os.path.abspath(_CSV_PATH))
+    _csv_scenarios_by_id = {s["response_id"]: s for s in _csv_scenarios_list}
+except Exception as _e:
+    print(f"[scenarios.py] Warning: could not load CSV scenarios: {_e}")
+
+# Single RL agent instance, persisted across requests
+_rl_agent = MoralRLAgent(alpha=0.1, gamma=0.9, epsilon=0.3)
+try:
+    _rl_agent.load(os.path.abspath(_RL_STATE_PATH))
+except Exception as _e:
+    print(f"[scenarios.py] Warning: could not load RL state: {_e}")
+
+_q_values = compute_q_values()
 
 
 @router.get("/characters", response_model=List[CharacterType])
@@ -387,3 +426,127 @@ async def export_scenarios(db: Session = Depends(get_db)):
         "message": f"Exported {count} scenarios to scenarios_export.json",
         "count": count
     }
+
+
+# ============================================================================
+# RL / CSV Endpoints
+# ============================================================================
+
+@router.get("/rl/scenarios")
+async def list_rl_scenarios(skip: int = 0, limit: int = 50):
+    """
+    Return a paginated list of CSV-sourced scenario previews.
+
+    Each item includes: response_id, passenger count, pedestrian count,
+    traffic_light, credences, and human_choice.
+    """
+    if not _csv_scenarios_list:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="CSV scenario data not available"
+        )
+    page = _csv_scenarios_list[skip: skip + limit]
+    return [
+        {
+            "response_id": s["response_id"],
+            "n_passengers": len(s["passengers"]),
+            "n_pedestrians": len(s["pedestrians"]),
+            "passengers": s["passengers"],
+            "pedestrians": s["pedestrians"],
+            "traffic_light": s["traffic_light"],
+            "barrier": s["barrier"],
+            "credences": s["credences"],
+            "human_choice": s["human_choice"],
+        }
+        for s in page
+    ]
+
+
+@router.get("/rl/scenarios/random")
+async def get_random_rl_scenario():
+    """Return one randomly selected CSV scenario."""
+    if not _csv_scenarios_list:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="CSV scenario data not available"
+        )
+    return random.choice(_csv_scenarios_list)
+
+
+@router.post("/rl/simulate", response_model=RLSimulateResponse)
+async def simulate_with_rl(request: RLSimulateRequest):
+    """
+    Run the full RL pipeline for a CSV scenario identified by response_id.
+
+    Pipeline:
+    1. Look up scenario in loaded CSV data
+    2. Compute credence dispersion → select Nash or Variance voting
+    3. Agent chooses voting method (ε-greedy); voting method selects action
+    4. SimulationEngine resolves harmed group
+    5. Compute moral reward
+    6. Q-update + epsilon decay
+    7. Persist agent state
+    8. Return full result
+    """
+    scenario = _csv_scenarios_by_id.get(request.response_id)
+    if scenario is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"ResponseID '{request.response_id}' not found in CSV data"
+        )
+
+    credences = scenario["credences"]
+
+    # 1. Credence dispersion → recommended voting method
+    dispersion = compute_credence_dispersion(credences)
+    recommended_method = select_voting_method(dispersion)
+
+    # 2. Agent chooses voting method (may differ due to ε-greedy exploration)
+    state = _rl_agent.encode_state(scenario, credences)
+    chosen_method = _rl_agent.choose_voting_method(state)
+    method_idx = VOTING_ACTIONS.index(chosen_method)
+
+    # 3. Chosen voting method determines action
+    if chosen_method == "nash":
+        action = nash_vote(credences, _q_values)
+    else:
+        action = variance_vote(credences, _q_values)
+
+    # 4. Resolve harmed group via simulation engine
+    sim_scenario = {
+        "passengers": scenario["passengers"],
+        "pedestrians": scenario["pedestrians"],
+        "traffic_light": scenario["traffic_light"],
+    }
+    outcome = simulation_engine.simulate_outcome(sim_scenario, action)
+
+    # 5. Compute moral reward
+    reward = _rl_agent.compute_moral_reward(action, credences)
+
+    # 6. Q-update (next state = same state for episodic scenarios)
+    _rl_agent.update(state, method_idx, reward, state)
+    _rl_agent.decay_epsilon()
+
+    # 7. Persist agent state
+    try:
+        _rl_agent.save(os.path.abspath(_RL_STATE_PATH))
+    except Exception as save_err:
+        print(f"[rl/simulate] Warning: could not save RL state: {save_err}")
+
+    # 8. Build response
+    stats = _rl_agent.get_stats()
+    return RLSimulateResponse(
+        action=action,
+        voting_method=chosen_method,
+        credence_dispersion=round(dispersion, 6),
+        credences=credences,
+        q_values=_q_values,
+        reward=reward,
+        human_choice=scenario["human_choice"],
+        agent_matches_human=(action == scenario["human_choice"]),
+        harmed_group=outcome["harmed_group"],
+        harmed_count=outcome["harmed_count"],
+        episode_count=stats["episode_count"],
+        avg_reward=stats["avg_reward"],
+        epsilon=stats["epsilon"],
+    )

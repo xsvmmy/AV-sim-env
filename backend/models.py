@@ -130,3 +130,29 @@ class CharacterType(BaseModel):
     name: str
     category: str  # e.g., "adult", "child", "elderly", "animal", "professional"
     description: str
+
+
+# ============================================================================
+# RL / CSV Simulation Schemas
+# ============================================================================
+
+class RLSimulateRequest(BaseModel):
+    """Request body for POST /api/rl/simulate."""
+    response_id: str
+
+
+class RLSimulateResponse(BaseModel):
+    """Response from the RL simulation pipeline."""
+    action: str                    # "stay" or "swerve" (agent's chosen action)
+    voting_method: str             # "nash" or "variance"
+    credence_dispersion: float
+    credences: dict                # {"deontological": x, "utilitarian": y}
+    q_values: dict                 # per-theory per-action values
+    reward: float
+    human_choice: str              # "stay" or "swerve" from CSV majority
+    agent_matches_human: bool
+    harmed_group: str              # "passengers" or "pedestrians"
+    harmed_count: int
+    episode_count: int
+    avg_reward: float
+    epsilon: float
