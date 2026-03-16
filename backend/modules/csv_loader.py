@@ -49,7 +49,7 @@ def _counts_to_list(row: dict, cap: int = 5) -> List[str]:
     return result
 
 
-def load_csv_scenarios(csv_path: str) -> List[Dict]:
+def load_csv_scenarios(csv_path: str, max_scenarios: int = 50_000) -> List[Dict]:
     """
     Load and parse filtered_responses.csv into a list of scenario dicts.
 
@@ -70,9 +70,12 @@ def load_csv_scenarios(csv_path: str) -> List[Dict]:
         }
 
     Pairs where either intervention row is missing are silently skipped.
+    Reading stops once max_scenarios complete pairs have been collected, so
+    large CSV files (20M+ rows) load quickly.
 
     Args:
-        csv_path: Absolute or relative path to filtered_responses.csv
+        csv_path:      Absolute or relative path to filtered_responses.csv
+        max_scenarios: Stop after collecting this many complete pairs (default 50 000)
 
     Returns:
         List of scenario dicts
@@ -83,10 +86,15 @@ def load_csv_scenarios(csv_path: str) -> List[Dict]:
 
     # Group rows by ResponseID
     groups: Dict[str, Dict[str, dict]] = {}  # {response_id: {0: row, 1: row}}
+    complete_count = 0
 
     with open(path, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
+            # Early exit once we have enough complete pairs
+            if complete_count >= max_scenarios:
+                break
+
             rid = row.get("ResponseID", "").strip()
             if not rid:
                 continue
@@ -102,6 +110,9 @@ def load_csv_scenarios(csv_path: str) -> List[Dict]:
             # Keep first occurrence for each intervention value per ResponseID
             if intervention not in groups[rid]:
                 groups[rid][intervention] = row
+                # Count complete pairs as they form
+                if len(groups[rid]) == 2:
+                    complete_count += 1
 
     scenarios = []
     for rid, pair in groups.items():
@@ -148,56 +159,117 @@ def load_csv_scenarios(csv_path: str) -> List[Dict]:
         if not passengers:
             passengers = ["Man"]
 
-        # Traffic light applies to pedestrians only (no legality for passengers).
-        # Use the Barrier=0 row (pedestrian row) for CrossingSignal.
-        ped_row = row_swerve if barrier_stay else row_stay
+        # ── Scenario metadata ───────────────────────────────────────────────
+        # PedPed first — needed to decide how to parse crossing signals below.
         try:
-            signal = int(float(ped_row.get("CrossingSignal", 0)))
+            ped_ped = int(float(row_stay.get("PedPed", 0))) == 1
         except (ValueError, TypeError):
-            signal = 0
-        traffic_light = "Green" if signal == 1 else "Red"
+            ped_ped = False
 
-        # Credences from Intervention=0 row (same for both rows of a pair)
+        # Prefer ScenarioTypeStrict (more accurate); fall back to ScenarioType
+        scenario_type = (
+            row_stay.get("ScenarioTypeStrict", "").strip()
+            or row_stay.get("ScenarioType",       "").strip()
+            or "Random"
+        )
+
+        # AttributeLevel: what ethical dimension is being contrasted
+        # (e.g. "Fit" vs "Fat" for a Fitness scenario)
+        attribute_level = (
+            row_stay.get("AttributeLevel",   "").strip()
+            or row_swerve.get("AttributeLevel", "").strip()
+            or ""
+        )
+
+        # ── Traffic light / legality ────────────────────────────────────────
+        # CrossingSignal: 0=no legality, 1=legal/green, 2=illegal/red
+        #
+        # In ped_ped scenarios both rows are pedestrian rows with *independent*
+        # signals (one lane is legal, the other illegal).  In standard scenarios
+        # only the pedestrian row carries a signal; the passenger row does not.
+        _sig_map = {0: "None", 1: "Green", 2: "Red"}
         try:
-            stay_prob = float(row_stay.get("stay_prob", 0.5))
+            sig_stay   = int(float(row_stay.get("CrossingSignal",   0)))
+            sig_swerve = int(float(row_swerve.get("CrossingSignal", 0)))
+        except (ValueError, TypeError):
+            sig_stay, sig_swerve = 0, 0
+
+        if ped_ped:
+            # Each lane has its own independent crossing signal.
+            lane1_traffic_light = _sig_map.get(sig_stay,   "None")
+            lane2_traffic_light = _sig_map.get(sig_swerve, "None")
+            # Primary traffic_light / legal_status uses lane1 for RL state.
+            signal        = sig_stay
+            traffic_light = lane1_traffic_light
+        else:
+            # Only the pedestrian row carries a signal.
+            ped_row = row_swerve if barrier_stay else row_stay
+            try:
+                signal = int(float(ped_row.get("CrossingSignal", 0)))
+            except (ValueError, TypeError):
+                signal = 0
+            traffic_light       = _sig_map.get(signal, "None")
+            lane1_traffic_light = traffic_light
+            lane2_traffic_light = "None"   # passenger lane has no crossing signal
+
+        legal_status = signal   # 0/1/2
+
+        # Absolute difference in character count between the two outcomes
+        try:
+            diff_n_chars = abs(int(float(row_stay.get("DiffNumberOFCharacters", 0))))
+        except (ValueError, TypeError):
+            diff_n_chars = 0
+
+        # ── Crowd credences ─────────────────────────────────────────────────
+        # stay_prob / swerve_prob are pre-aggregated across all survey responses
+        try:
+            stay_prob   = float(row_stay.get("stay_prob",   0.5))
             swerve_prob = float(row_stay.get("swerve_prob", 0.5))
         except (ValueError, TypeError):
             stay_prob, swerve_prob = 0.5, 0.5
 
-        # Normalise if they don't sum to ~1
         total = stay_prob + swerve_prob
         if total > 0:
-            stay_prob /= total
+            stay_prob   /= total
             swerve_prob /= total
         else:
             stay_prob, swerve_prob = 0.5, 0.5
 
-        # Human majority choice from n_stay / n_swerve on Intervention=0 row
+        # ── Human majority choice ───────────────────────────────────────────
         try:
-            n_stay = float(row_stay.get("n_stay", 0))
+            n_stay   = float(row_stay.get("n_stay",   0))
             n_swerve = float(row_stay.get("n_swerve", 0))
         except (ValueError, TypeError):
             n_stay, n_swerve = 0.0, 0.0
         human_choice = "stay" if n_stay >= n_swerve else "swerve"
 
         scenarios.append({
-            "response_id":     rid,
-            # Legacy simulation fields (harmed if stay / harmed if swerve)
-            "pedestrians":     pedestrians,
-            "passengers":      passengers,
-            # Actual AV occupants and lane contents for visualization
+            "response_id":      rid,
+            # Simulation fields (harmed group depends on action)
+            "pedestrians":      pedestrians,
+            "passengers":       passengers,
+            # Road visualization fields
             "passengers_in_av": passengers_in_av,
-            "lane1_chars":     lane1_chars,
-            "lane2_chars":     lane2_chars,
+            "lane1_chars":      lane1_chars,
+            "lane2_chars":      lane2_chars,
             "lane1_is_barrier": barrier_stay,
             "lane2_is_barrier": barrier_swerve,
-            "traffic_light":   traffic_light,
-            "barrier":         barrier_swerve,  # legacy: True when swerve lane has barrier
+            "barrier":          barrier_swerve,   # legacy
+            # Traffic / legality
+            "traffic_light":      traffic_light,        # "None" | "Green" | "Red"  (lane1 / ped row)
+            "lane1_traffic_light": lane1_traffic_light, # per-lane signals (ped_ped only differs)
+            "lane2_traffic_light": lane2_traffic_light,
+            "legal_status":       legal_status,         # 0=none | 1=green | 2=red
+            # Scenario metadata (from Moral Machine dataset)
+            "scenario_type":    scenario_type,    # Utilitarian | Gender | Fitness | Age | Social Status | Species | Random
+            "attribute_level":  attribute_level,  # More | Less | Fit | Fat | Young | Old | Male | Female | High | Low | Hoomans | Pets | Rand
+            "ped_ped":          ped_ped,          # True = ped vs ped; False = ped vs passenger
+            "diff_n_chars":     diff_n_chars,     # |n_lane1 − n_lane2|
             "credences": {
-                "deontological": round(stay_prob, 6),
+                "deontological": round(stay_prob,   6),
                 "utilitarian":   round(swerve_prob, 6),
             },
-            "human_choice": human_choice,
+            "human_choice":     human_choice,
         })
 
     return scenarios

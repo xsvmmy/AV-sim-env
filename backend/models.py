@@ -7,7 +7,7 @@ This module defines:
 """
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from sqlalchemy import Column, Integer, String, DateTime, JSON
 from pydantic import BaseModel, Field, validator
 from database import Base
@@ -20,57 +20,39 @@ from database import Base
 class ScenarioDB(Base):
     """
     Database model for storing ethical dilemma scenarios.
-
-    Stores the complete scenario configuration including:
-    - Passengers in vehicle
-    - Pedestrians in crosswalk
-    - Traffic light state
-    - Outcome choice (if simulation was run)
     """
     __tablename__ = "scenarios"
 
-    id = Column(Integer, primary_key=True, index=True)
-    passengers = Column(JSON, nullable=False)  # List of character types
-    pedestrians = Column(JSON, nullable=False)  # List of character types
-    traffic_light = Column(String, nullable=False)  # "Red" or "Green"
-    outcome = Column(String, nullable=True)  # "stay" or "swerve" (null if not simulated)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # Future RL integration: Add columns for
-    # - state_encoding (vector representation)
-    # - action_taken (agent decision)
-    # - reward_received (ethical score)
-    # - agent_version (model version that made decision)
+    id            = Column(Integer, primary_key=True, index=True)
+    passengers    = Column(JSON,   nullable=False)
+    pedestrians   = Column(JSON,   nullable=False)
+    traffic_light = Column(String, nullable=False)
+    outcome       = Column(String, nullable=True)
+    created_at    = Column(DateTime, default=datetime.utcnow)
 
 
 # ============================================================================
-# Pydantic Schemas (API Request/Response Validation)
+# Pydantic Schemas — Scenario CRUD
 # ============================================================================
 
 class ScenarioBase(BaseModel):
     """Base schema with common scenario fields."""
     passengers: List[str] = Field(
-        ...,
-        min_length=1,
-        max_length=5,
-        description="List of 1-5 passenger character types"
+        ..., min_length=1, max_length=5,
+        description="List of 1–5 passenger character types"
     )
     pedestrians: List[str] = Field(
-        ...,
-        min_length=1,
-        max_length=5,
-        description="List of 1-5 pedestrian character types"
+        ..., min_length=1, max_length=5,
+        description="List of 1–5 pedestrian character types"
     )
     traffic_light: str = Field(
-        ...,
-        pattern="^(Red|Green)$",
-        description="Traffic light state: Red or Green"
+        ..., pattern="^(Red|Green|None)$",
+        description="Traffic light state: Red, Green, or None"
     )
 
     @validator('passengers', 'pedestrians')
     def validate_character_list(cls, v):
-        """Ensure at least one character is provided."""
-        if not v or len(v) == 0:
+        if not v:
             raise ValueError('At least one character must be provided')
         if len(v) > 5:
             raise ValueError('Maximum 5 characters allowed')
@@ -78,62 +60,40 @@ class ScenarioBase(BaseModel):
 
 
 class ScenarioCreate(ScenarioBase):
-    """Schema for creating a new scenario (POST request)."""
     pass
 
 
 class ScenarioUpdate(BaseModel):
-    """
-    Schema for updating an existing scenario (PUT request).
-    All fields are optional to allow partial updates.
-    """
-    passengers: Optional[List[str]] = Field(None, min_length=1, max_length=5)
-    pedestrians: Optional[List[str]] = Field(None, min_length=1, max_length=5)
-    traffic_light: Optional[str] = Field(None, pattern="^(Red|Green)$")
-    outcome: Optional[str] = Field(None, pattern="^(stay|swerve)$")
+    passengers:    Optional[List[str]] = Field(None, min_length=1, max_length=5)
+    pedestrians:   Optional[List[str]] = Field(None, min_length=1, max_length=5)
+    traffic_light: Optional[str]       = Field(None, pattern="^(Red|Green|None)$")
+    outcome:       Optional[str]       = Field(None, pattern="^(stay|swerve)$")
 
 
 class ScenarioResponse(ScenarioBase):
-    """
-    Schema for scenario response (GET request).
-    Includes all fields from database model.
-    """
-    id: int
-    outcome: Optional[str] = None
+    id:         int
+    outcome:    Optional[str] = None
     created_at: datetime
 
     class Config:
-        from_attributes = True  # Allows creating from ORM model
+        from_attributes = True
 
 
 class SimulationOutcome(BaseModel):
-    """
-    Schema for simulation results.
-
-    This is returned after a user selects an outcome (stay/swerve).
-    Future RL integration: This will include agent decision confidence,
-    reward signal, and policy information.
-    """
     outcome_choice: str = Field(..., pattern="^(stay|swerve)$")
-    harmed_group: str = Field(..., pattern="^(passengers|pedestrians)$")
-    harmed_count: int = Field(..., ge=0)
-    scenario_id: int
-
-    # Placeholders for future RL integration
-    # agent_confidence: float = 0.0
-    # reward: float = 0.0
-    # policy_info: dict = {}
+    harmed_group:   str = Field(..., pattern="^(passengers|pedestrians)$")
+    harmed_count:   int = Field(..., ge=0)
+    scenario_id:    int
 
 
 class CharacterType(BaseModel):
-    """Schema for character type information."""
-    name: str
-    category: str  # e.g., "adult", "child", "elderly", "animal", "professional"
+    name:        str
+    category:    str
     description: str
 
 
 # ============================================================================
-# RL / CSV Simulation Schemas
+# RL Simulation Schemas
 # ============================================================================
 
 class RLSimulateRequest(BaseModel):
@@ -142,17 +102,96 @@ class RLSimulateRequest(BaseModel):
 
 
 class RLSimulateResponse(BaseModel):
-    """Response from the RL simulation pipeline."""
-    action: str                    # "stay" or "swerve" (agent's chosen action)
-    voting_method: str             # "nash" or "variance"
-    credence_dispersion: float
-    credences: dict                # {"deontological": x, "utilitarian": y}
-    q_values: dict                 # per-theory per-action values
-    reward: float
-    human_choice: str              # "stay" or "swerve" from CSV majority
+    """
+    Response from the RL simulation pipeline.
+
+    Note: the agent's Q-table is NOT updated at simulate time.
+    Call POST /api/rl/feedback after the user gives their verdict.
+    """
+    action:              str    # "stay" or "swerve" — agent's chosen action
+    q_values:            dict   # {"stay": float, "swerve": float}
+    credences:           dict   # {"deontological": float, "utilitarian": float}
+    human_choice:        str    # majority human choice from CSV
     agent_matches_human: bool
-    harmed_group: str              # "passengers" or "pedestrians"
-    harmed_count: int
+    harmed_group:        str    # "passengers" or "pedestrians"
+    harmed_count:        int
+    episode_count:       int
+    avg_reward:          float
+    epsilon:             float
+    voting:              dict   # Nash/variance voting result (independent of agent state)
+
+
+# ============================================================================
+# Feedback Schema (kept for manual challenge compatibility)
+# ============================================================================
+
+class FeedbackRequest(BaseModel):
+    """User verdict on the agent's last simulation."""
+    response_id:  str
+    agent_action: str  = Field(..., pattern="^(stay|swerve)$")
+    user_agrees:  bool
+
+
+class FeedbackResponse(BaseModel):
+    """Result of applying user feedback to the Q-table."""
+    reward:         float
+    episode_count:  int
+    avg_reward:     float
+    epsilon:        float
+    batch_trained:  bool
+    buffer_count:   int
+
+
+# ============================================================================
+# Dataset Run Schema
+# ============================================================================
+
+class DatasetRunResponse(BaseModel):
+    """
+    Result of a dataset-guided rerun.
+
+    The agent uses Nash/variance voting (from CSV credences) as its action,
+    trains the Q-table with +1 reward, and returns the updated state.
+    """
+    action:        str    # Nash/variance recommended action
+    q_values:      dict   # updated Q-values after training
+    voting:        dict   # voting details (method, split, recommendation, etc.)
+    reward:        float  # always +1.0
+    harmed_group:  str
+    harmed_count:  int
     episode_count: int
-    avg_reward: float
-    epsilon: float
+    avg_reward:    float
+    epsilon:       float
+
+
+# ============================================================================
+# Manual Challenge Schemas
+# ============================================================================
+
+class ManualStartRequest(BaseModel):
+    """Request N scenarios for the manual challenge."""
+    n_scenarios: int = Field(..., ge=10, le=200,
+                             description="Number of scenarios (min 10, max 200)")
+
+
+class ManualStartResponse(BaseModel):
+    """List of scenarios returned for the manual challenge."""
+    scenarios: List[Dict[str, Any]]
+
+
+class UserDecision(BaseModel):
+    """A single user decision in the manual challenge."""
+    response_id: str
+    action:      str = Field(..., pattern="^(stay|swerve)$")
+
+
+class ManualSubmitRequest(BaseModel):
+    """Batch of user decisions to train the agent."""
+    decisions: List[UserDecision] = Field(..., min_length=1)
+
+
+class ManualSubmitResponse(BaseModel):
+    """Result of submitting manual decisions."""
+    saved_count:   int
+    trained_count: int
+    csv_filename:  str
