@@ -18,6 +18,12 @@
   flex: 1;
 }
 
+.viz-header-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .btn-load-random {
   background: #6366f1;
   color: white;
@@ -32,6 +38,24 @@
 }
 .btn-load-random:hover:not(:disabled) { background: #4f46e5; }
 .btn-load-random:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-manual-challenge {
+  background: #92400e;
+  color: #fde68a;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+  white-space: nowrap;
+  font-size: 14px;
+}
+.btn-manual-challenge:hover:not(:disabled) { background: #b45309; }
+.btn-manual-challenge:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -75,6 +99,7 @@
 }
 .sig-green { background: #e8f5e9; color: #2e7d32; }
 .sig-red   { background: #ffebee; color: #c62828; }
+.sig-amber { background: #fff8e1; color: #f57f17; }
 
 .lane-stat {
   font-size: 13px;
@@ -88,9 +113,9 @@
 .road-container {
   position: relative;
   width: 100%;
-  max-width: 540px;
-  height: 400px;
-  background: #404040;
+  max-width: 560px;
+  height: 440px;
+  background: #3a3a3a;
   border-radius: 16px;
   margin: 0 auto 28px;
   overflow: hidden;
@@ -163,6 +188,28 @@
   z-index: 1;
 }
 
+/* Median barrier — shown only in ped_ped scenarios, runs through the crosswalk */
+.road-crosswalk-median {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 64px;
+  z-index: 4;
+  border-radius: 3px;
+  /* Concrete/yellow striped barrier */
+  background: repeating-linear-gradient(
+    135deg,
+    #f59e0b 0px,
+    #f59e0b 6px,
+    #1a1a1a 6px,
+    #1a1a1a 12px
+  );
+  border: 1.5px solid #92400e;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+}
+
 /* ── Character groups ── */
 .road-group {
   position: absolute;
@@ -190,19 +237,21 @@
   transition: background 0.3s;
 }
 
-.road-char { font-size: 22px; line-height: 1.1; }
-.road-char-barrier { font-size: 26px; }
-
 .road-group-harmed .road-group-chars {
   background: rgba(220, 53, 69, 0.55);
   border-color: rgba(220, 53, 69, 0.7);
   animation: shake 0.45s;
 }
 
-.road-harm-burst {
-  font-size: 30px;
-  margin-top: 4px;
-  animation: pop 0.4s ease-out;
+.road-harm-label {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #ef4444;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  animation: pop 0.35s ease-out;
 }
 
 @keyframes shake {
@@ -212,21 +261,20 @@
 }
 @keyframes pop {
   0%   { transform: scale(0); opacity: 0; }
-  60%  { transform: scale(1.4); opacity: 1; }
+  60%  { transform: scale(1.3); opacity: 1; }
   100% { transform: scale(1);  opacity: 1; }
 }
 
-/* Traffic signal badge (near lane 1 pedestrians) */
+/* Crossing signal boxes — left and right edges of the road at the crosswalk */
 .road-signal {
   position: absolute;
-  top: 56%;
-  left: 9%;
-  font-size: 20px;
+  top: 39%;
+  transform: translateY(-50%);
   z-index: 5;
-  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
 }
-.road-signal-green { /* walk */ }
-.road-signal-red   { /* don't walk */ }
+
+.road-signal-left  { left: 2px; }
+.road-signal-right { right: 2px; }
 
 /* ── Autonomous Vehicle ── */
 .road-av {
@@ -237,14 +285,6 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-
-.road-av-icon {
-  font-size: 40px;
-  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.55));
-  /* Rotate 🚙 so it faces downward (road goes top-to-bottom) */
-  display: block;
-  transform: rotate(90deg);
 }
 
 /* Passenger cabin shown above the car when AV has occupants */
@@ -261,46 +301,36 @@
   margin-bottom: 3px;
 }
 
-.av-passenger {
-  font-size: 13px;
-  line-height: 1.1;
-}
-
-/* Crash burst shown on AV when it hits a barrier */
-.av-harm-indicator {
-  font-size: 28px;
-  margin-top: 3px;
-  animation: pop 0.4s ease-out;
-}
-
-/* Shake the car icon on impact */
-.road-av-harmed .road-av-icon {
+/* Shake the car SVG on barrier impact */
+.road-av-harmed {
   animation: av-crash 0.5s ease-out;
 }
 
 @keyframes av-crash {
-  0%   { filter: drop-shadow(0 3px 8px rgba(0,0,0,0.55)); }
-  20%  { filter: drop-shadow(0 0 12px rgba(239,68,68,0.9)); transform: rotate(90deg) translateY(-4px); }
-  40%  { filter: drop-shadow(0 0 12px rgba(239,68,68,0.9)); transform: rotate(90deg) translateY(4px); }
-  60%  { filter: drop-shadow(0 0 8px rgba(239,68,68,0.6));  transform: rotate(90deg) translateY(-2px); }
-  80%  { filter: drop-shadow(0 0 8px rgba(239,68,68,0.6));  transform: rotate(90deg) translateY(2px); }
-  100% { filter: drop-shadow(0 3px 8px rgba(0,0,0,0.55));   transform: rotate(90deg); }
+  0%   { transform: translate(-50%, -50%) translateX(0); }
+  20%  { transform: translate(-50%, -50%) translateX(-5px); }
+  40%  { transform: translate(-50%, -50%) translateX(5px); }
+  60%  { transform: translate(-50%, -50%) translateX(-3px); }
+  80%  { transform: translate(-50%, -50%) translateX(3px); }
+  100% { transform: translate(-50%, -50%) translateX(0); }
 }
 
-/* AV position states — use translate(-50%, -50%) to center on the anchor point */
+/* AV position states — translate(-50%, -50%) centers on anchor point.
+   Crosswalk sits at top: 42%. Car height ≈ 83px on a 400px road (≈21%).
+   Centering at 31% puts the car's front edge right at the crosswalk. */
 .av-initial {
   left: 25%;
-  top: 20%;
+  top: 18%;
   transform: translate(-50%, -50%);
 }
 .av-staying {
   left: 25%;
-  top: 70%;
+  top: 31%;
   transform: translate(-50%, -50%);
 }
 .av-swerving {
   left: 75%;
-  top: 45%;
+  top: 31%;
   transform: translate(-50%, -50%);
 }
 
@@ -431,6 +461,34 @@
   transition: background 0.2s;
 }
 .btn-new-scenario:hover { background: #27ae60; }
+
+/* ── Mode description banners ── */
+.viz-mode-desc {
+  margin-top: 12px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.83rem;
+  line-height: 1.55;
+  border-left: 3px solid;
+}
+
+.viz-mode-desc--random {
+  background: #0f1f12;
+  border-color: #22c55e;
+  color: #bbf7d0;
+}
+
+.viz-mode-desc--random strong { color: #4ade80; }
+.viz-mode-desc--random em     { color: #86efac; font-style: normal; font-weight: 600; }
+
+.viz-mode-desc--manual {
+  background: #1a1505;
+  border-color: #f59e0b;
+  color: #fde68a;
+}
+
+.viz-mode-desc--manual strong { color: #fbbf24; }
+.viz-mode-desc--manual em     { color: #fcd34d; font-style: normal; font-weight: 600; }
 
 /* ── Responsive ── */
 @media (max-width: 600px) {

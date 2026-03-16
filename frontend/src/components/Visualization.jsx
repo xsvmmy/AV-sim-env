@@ -1,25 +1,17 @@
 import React, { useState, useCallback } from 'react';
 import RLPanel from './RLPanel';
+import ManualMode from './ManualMode';
+import CharacterSVG from './CharacterSVG';
+import CarSVG from './CarSVG';
+import CrossingSignalSVG from './CrossingSignalSVG';
 import { getRLScenarioRandom, createScenario } from '../utils/api';
 import './Visualization.css';
 
 function Visualization({ scenario, onScenarioLoaded }) {
-  const [rlPlayback, setRlPlayback]       = useState(null);
+  const [rlPlayback, setRlPlayback]           = useState(null);
   const [loadingScenario, setLoadingScenario] = useState(false);
-  const [loadError, setLoadError]         = useState(null);
-
-  const getCharacterEmoji = (name) => {
-    const emojiMap = {
-      'Man': '👨', 'Woman': '👩', 'Pregnant': '🤰', 'Stroller': '👶',
-      'OldMan': '👴', 'OldWoman': '👵', 'Boy': '👦', 'Girl': '👧',
-      'Homeless': '🧑', 'LargeWoman': '👩', 'LargeMan': '👨',
-      'Criminal': '🦹', 'MaleExecutive': '👔', 'FemaleExecutive': '👩‍💼',
-      'FemaleAthlete': '🏃‍♀️', 'MaleAthlete': '🏃‍♂️',
-      'FemaleDoctor': '👩‍⚕️', 'MaleDoctor': '👨‍⚕️',
-      'Dog': '🐕', 'Cat': '🐈', 'Barricade': '🚧',
-    };
-    return emojiMap[name] || '👤';
-  };
+  const [loadError, setLoadError]             = useState(null);
+  const [manualModeActive, setManualModeActive] = useState(false);
 
   const handleLoadRandom = async () => {
     setLoadingScenario(true);
@@ -34,29 +26,51 @@ function Visualization({ scenario, onScenarioLoaded }) {
       onScenarioLoaded({ ...csvScenario, ...created });
     } catch (err) {
       setLoadError(err.message || 'Failed to load scenario');
-      console.error('Error loading random scenario:', err);
     } finally {
       setLoadingScenario(false);
     }
   };
 
-  // Driven by RLPanel — each phase transition updates the road animation
+  // Driven by RLPanel and ManualMode — each phase transition updates the road
   const handleRLStep = useCallback((step) => {
     setRlPlayback(step.phase === 'done' ? null : step);
   }, []);
 
-  // RL episode scenario takes priority over the scenario prop while running;
-  // when RL finishes (rlPlayback → null), the scenario prop keeps characters visible.
+  // Manual mode completed — switch back to RL panel mode
+  const handleManualComplete = useCallback(() => {
+    setManualModeActive(false);
+    setRlPlayback(null);
+  }, []);
+
+  // Cancel manual mode
+  const handleManualCancel = useCallback(() => {
+    setManualModeActive(false);
+    setRlPlayback(null);
+  }, []);
+
+  // RL episode scenario takes priority over scenario prop while running
   const displayScenario    = rlPlayback?.scenario ?? scenario;
   const displayAction      = rlPlayback?.result?.action;
   const displayHarmedGroup = rlPlayback?.result?.harmed_group;
 
-  // New fields with fallbacks for backward compatibility
   const lane1Chars     = displayScenario?.lane1_chars     ?? displayScenario?.pedestrians ?? [];
   const lane2Chars     = displayScenario?.lane2_chars     ?? (displayScenario?.passengers?.filter(p => p !== 'Barricade') ?? []);
   const lane1IsBarrier = displayScenario?.lane1_is_barrier ?? false;
   const lane2IsBarrier = displayScenario?.lane2_is_barrier ?? (displayScenario?.passengers?.includes('Barricade') ?? false);
   const passengersInAV = displayScenario?.passengers_in_av ?? [];
+  const isPedPed       = displayScenario?.ped_ped ?? false;
+
+  // Per-lane crossing signal states for the SVG signal boxes.
+  // In ped_ped scenarios each lane has its own independent signal.
+  const toSigState = (tl) => tl === 'Green' ? 'green' : tl === 'Red' ? 'red' : 'none';
+  const lane1Signal = toSigState(
+    isPedPed
+      ? (displayScenario?.lane1_traffic_light ?? displayScenario?.traffic_light)
+      : displayScenario?.traffic_light
+  );
+  const lane2Signal = toSigState(
+    isPedPed ? displayScenario?.lane2_traffic_light : null
+  );
 
   const activeAnimPhase = (() => {
     if (!rlPlayback) return 'initial';
@@ -82,7 +96,6 @@ function Visualization({ scenario, onScenarioLoaded }) {
   const isLane2Harmed = activeAnimPhase === 'result' && displayHarmedGroup === 'passengers';
   const isAVHarmed    = (isLane1Harmed && lane1IsBarrier) || (isLane2Harmed && lane2IsBarrier);
 
-  // Disable the load button while the RL agent is actively running
   const isRLRunning = !!rlPlayback;
 
   return (
@@ -90,35 +103,79 @@ function Visualization({ scenario, onScenarioLoaded }) {
       <div className="viz-header">
         <h2>Simulation Visualization</h2>
 
-        {loadError && (
-          <span className="viz-load-error">{loadError}</span>
-        )}
+        {loadError && <span className="viz-load-error">{loadError}</span>}
 
-        <button
-          className="btn-load-random"
-          onClick={handleLoadRandom}
-          disabled={loadingScenario || isRLRunning}
-          title={isRLRunning ? 'Wait for the current run to finish' : 'Load a new random scenario'}
-        >
-          {loadingScenario ? 'Loading…' : '🎲 Random Scenario'}
-        </button>
+        <div className="viz-header-buttons">
+          <button
+            className="btn-load-random"
+            onClick={handleLoadRandom}
+            disabled={loadingScenario || isRLRunning || manualModeActive}
+            title={isRLRunning ? 'Wait for the current run to finish' : 'Load a new random scenario'}
+          >
+            {loadingScenario ? 'Loading…' : '🎲 Random Scenario'}
+          </button>
+
+          <button
+            className="btn-manual-challenge"
+            onClick={() => setManualModeActive(true)}
+            disabled={isRLRunning || manualModeActive || loadingScenario}
+            title="Solve scenarios manually — the RL agent will learn from your choices"
+          >
+            🧠 Manual Challenge
+          </button>
+        </div>
 
         {rlPlayback?.episodeNum != null && (
           <div className="rl-ep-counter">
             Episode {rlPlayback.episodeNum} / {rlPlayback.totalEpisodes}
           </div>
         )}
+
+        {/* Mode description — shown after a method is chosen */}
+        {manualModeActive && (
+          <div className="viz-mode-desc viz-mode-desc--manual">
+            <strong>Manual Challenge</strong> — You'll be shown real AV dilemmas from the MIT Moral Machine
+            dataset one at a time. Choose <em>Stay</em> or <em>Swerve</em> for each scenario.
+            Once you finish, the RL agent trains on your decisions and can then simulate future
+            scenarios the way you would decide.
+          </div>
+        )}
+        {scenario && !manualModeActive && (
+          <div className="viz-mode-desc viz-mode-desc--random">
+            <strong>Random Scenario</strong> — A dilemma from the MIT Moral Machine dataset has been loaded.
+            Use the RL panel below to run the agent — it will predict your choice (Stay or Swerve).
+            Confirm or correct each prediction to help the agent learn your moral preferences in real time.
+          </div>
+        )}
       </div>
 
       <div className="viz-main section">
 
-        {/* Compact info bar — only shown when a scenario is loaded */}
+        {/* Compact info bar */}
         {displayScenario && (
           <div className="scenario-info-bar">
-            <span className={`sig-badge ${displayScenario.traffic_light === 'Green' ? 'sig-green' : 'sig-red'}`}>
-              {displayScenario.traffic_light === 'Green' ? '🚶 Walk' : '🚫 Don\'t Walk'}
-            </span>
-            {passengersInAV.length > 0 && (
+            {isPedPed ? (
+              // Ped-ped: show each lane's independent signal
+              <>
+                <span className="sig-badge sig-amber">Ped vs Ped</span>
+                <span className={`sig-badge ${lane1Signal === 'green' ? 'sig-green' : lane1Signal === 'red' ? 'sig-red' : 'sig-amber'}`}>
+                  Lane 1 {lane1Signal === 'green' ? '🚶 Walk' : lane1Signal === 'red' ? '🚫 No Walk' : '— No signal'}
+                </span>
+                <span className={`sig-badge ${lane2Signal === 'green' ? 'sig-green' : lane2Signal === 'red' ? 'sig-red' : 'sig-amber'}`}>
+                  Lane 2 {lane2Signal === 'green' ? '🚶 Walk' : lane2Signal === 'red' ? '🚫 No Walk' : '— No signal'}
+                </span>
+              </>
+            ) : (
+              // Standard: one shared signal for pedestrians
+              displayScenario.traffic_light === 'None' || !displayScenario.traffic_light ? (
+                <span className="sig-badge sig-amber">No signal</span>
+              ) : displayScenario.traffic_light === 'Green' ? (
+                <span className="sig-badge sig-green">🚶 Walk (legal)</span>
+              ) : (
+                <span className="sig-badge sig-red">🚫 Don't Walk (illegal)</span>
+              )
+            )}
+            {!isPedPed && passengersInAV.length > 0 && (
               <span className="lane-stat">
                 🚙 AV · {passengersInAV.length} passenger{passengersInAV.length !== 1 ? 's' : ''}
               </span>
@@ -143,67 +200,93 @@ function Visualization({ scenario, onScenarioLoaded }) {
           <div className="road-dir-arrow road-dir-2">▼</div>
           <div className="road-crosswalk" />
 
-          {/* Lane 1: pedestrians or barrier — only rendered once a scenario is loaded */}
+          {/* Lane 1 */}
           {displayScenario && (
             <div className={`road-group road-group-1 ${isLane1Harmed && !lane1IsBarrier ? 'road-group-harmed' : ''}`}>
               <div className="road-group-chars">
                 {lane1IsBarrier
-                  ? <span className="road-char road-char-barrier">🚧🚧</span>
+                  ? <><CharacterSVG type="Barricade" size={42} /><CharacterSVG type="Barricade" size={42} /></>
                   : lane1Chars.map((p, i) => (
-                      <span key={i} className="road-char" title={p}>{getCharacterEmoji(p)}</span>
+                      <CharacterSVG
+                        key={i}
+                        type={p}
+                        size={42}
+                        fill={isLane1Harmed ? '#ef4444' : '#e8e8e8'}
+                      />
                     ))
                 }
               </div>
-              {isLane1Harmed && !lane1IsBarrier && <div className="road-harm-burst">💥</div>}
+              {isLane1Harmed && !lane1IsBarrier && (
+                <div className="road-harm-label">✕ Impact</div>
+              )}
             </div>
           )}
 
-          {/* Traffic signal — only shown once a scenario is loaded */}
+          {/* Crossing signals — left and right edges, per-lane in ped_ped mode */}
           {displayScenario && (
-            <div className={`road-signal ${displayScenario.traffic_light === 'Green' ? 'road-signal-green' : 'road-signal-red'}`}>
-              {displayScenario.traffic_light === 'Green' ? '🚶' : '🚫'}
-            </div>
+            <>
+              <div className="road-signal road-signal-left">
+                <CrossingSignalSVG state={lane1Signal} height={72} />
+              </div>
+              <div className="road-signal road-signal-right">
+                <CrossingSignalSVG state={isPedPed ? lane2Signal : lane1Signal} height={72} />
+              </div>
+            </>
           )}
 
-          {/* Lane 2: pedestrians or barrier — only rendered once a scenario is loaded */}
+          {/* Median barrier — only shown in ped_ped scenarios */}
+          {displayScenario && isPedPed && (
+            <div className="road-crosswalk-median" />
+          )}
+
+          {/* Lane 2 */}
           {displayScenario && (
             <div className={`road-group road-group-2 ${isLane2Harmed && !lane2IsBarrier ? 'road-group-harmed' : ''}`}>
               <div className="road-group-chars">
                 {lane2IsBarrier
-                  ? <span className="road-char road-char-barrier">🚧🚧</span>
+                  ? <><CharacterSVG type="Barricade" size={42} /><CharacterSVG type="Barricade" size={42} /></>
                   : lane2Chars.map((p, i) => (
-                      <span key={i} className="road-char" title={p}>{getCharacterEmoji(p)}</span>
+                      <CharacterSVG
+                        key={i}
+                        type={p}
+                        size={42}
+                        fill={isLane2Harmed ? '#ef4444' : '#e8e8e8'}
+                      />
                     ))
-              }
+                }
               </div>
-              {isLane2Harmed && !lane2IsBarrier && <div className="road-harm-burst">💥</div>}
+              {isLane2Harmed && !lane2IsBarrier && (
+                <div className="road-harm-label">✕ Impact</div>
+              )}
             </div>
           )}
 
-          {/* Autonomous vehicle */}
+          {/* AV — in ped_ped scenarios the vehicle is unoccupied, no cabin shown */}
           <div className={`road-av ${getAVClass()} ${isAVHarmed ? 'road-av-harmed' : ''}`}>
-            {passengersInAV.length > 0 && (
+            {!isPedPed && passengersInAV.length > 0 && (
               <div className="av-cabin">
                 {passengersInAV.map((p, i) => (
-                  <span key={i} className="av-passenger" title={p}>{getCharacterEmoji(p)}</span>
+                  <CharacterSVG key={i} type={p} size={20} fill="#93c5fd" />
                 ))}
               </div>
             )}
-            <div className="road-av-icon">🚙</div>
-            {isAVHarmed && <div className="av-harm-indicator">💥</div>}
+            <CarSVG width={48} harmed={isAVHarmed} />
           </div>
 
-          {/* Empty-state prompt — shown before any scenario is loaded */}
+          {/* Empty-state prompt */}
           {!scenario && !rlPlayback && (
             <div className="road-empty-overlay">
-              <span>Click <strong>🎲 Random Scenario</strong> above to load a dilemma</span>
+              <span>
+                Click <strong>🎲 Random Scenario</strong> to load a dilemma,
+                or <strong>🧠 Manual Challenge</strong> to decide yourself.
+              </span>
             </div>
           )}
 
-          {/* Idle prompt — shown after a scenario is loaded but RL hasn't started yet */}
-          {scenario && !rlPlayback && (
+          {/* Idle prompt */}
+          {scenario && !rlPlayback && !manualModeActive && (
             <div className="road-idle-overlay">
-              <span>Use the RL Panel below to run the simulation</span>
+              <span>Use the RL Panel below to run simulations</span>
             </div>
           )}
 
@@ -222,16 +305,23 @@ function Visualization({ scenario, onScenarioLoaded }) {
             </div>
           )}
 
-          {/* RL deciding overlay */}
+          {/* Agent deciding overlay */}
           {rlPlayback?.phase === 'deciding' && (
             <div className="road-rl-deciding">🤖 Agent deciding…</div>
           )}
         </div>
       </div>
 
-      {/* RLPanel only appears once a scenario has been loaded.
-          Pass the loaded scenario so the agent always trains on the same one. */}
-      {scenario && <RLPanel scenario={scenario} onRLStep={handleRLStep} />}
+      {/* ── Panel area: Manual Mode OR RL Panel ── */}
+      {manualModeActive ? (
+        <ManualMode
+          onRLStep={handleRLStep}
+          onComplete={handleManualComplete}
+          onCancel={handleManualCancel}
+        />
+      ) : (
+        scenario && <RLPanel scenario={scenario} onRLStep={handleRLStep} />
+      )}
     </div>
   );
 }

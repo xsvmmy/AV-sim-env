@@ -1,0 +1,415 @@
+/* ============================================================
+   ManualMode.css — Styles for the Manual Challenge Panel
+   ============================================================ */
+
+.mm-panel {
+  background: #12122a;
+  border: 1px solid #2d2d5e;
+  border-radius: 12px;
+  padding: 24px;
+  margin-top: 32px;
+  color: #e0e0e0;
+  font-family: inherit;
+}
+
+.mm-panel-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  gap: 16px;
+  text-align: center;
+}
+
+/* ── Header ── */
+.mm-header {
+  margin-bottom: 20px;
+}
+
+.mm-header h3 {
+  margin: 0 0 6px;
+  font-size: 1.2rem;
+  color: #f59e0b;
+  letter-spacing: 0.02em;
+}
+
+.mm-subtitle {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #9ca3af;
+}
+
+/* ── Progress bar ── */
+.mm-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.mm-progress-bar {
+  flex: 1;
+  height: 8px;
+  background: #1f2937;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.mm-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+  border-radius: 99px;
+  transition: width 0.4s ease;
+  min-width: 4px;
+}
+
+.mm-progress-label {
+  font-size: 0.82rem;
+  color: #9ca3af;
+  white-space: nowrap;
+  min-width: 56px;
+  text-align: right;
+}
+
+/* ── Section ── */
+.mm-section {
+  border-top: 1px solid #2d2d5e;
+  padding-top: 16px;
+  margin-top: 16px;
+}
+
+.mm-section-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7c7c9e;
+  margin-bottom: 12px;
+}
+
+/* ── Count input (config) ── */
+.mm-count-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.mm-count-input {
+  width: 80px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #374151;
+  background: #111827;
+  color: #f3f4f6;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.mm-count-input:focus { outline: 2px solid #f59e0b; }
+
+.mm-count-hint {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+/* ── Scenario info ── */
+.mm-scenario-info {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.mm-info-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mm-label {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  min-width: 140px;
+  flex-shrink: 0;
+}
+
+.mm-chars {
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.mm-count {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-left: 4px;
+}
+
+/* ── Badges ── */
+.mm-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 99px;
+}
+
+.badge-green {
+  background: #064e3b;
+  color: #6ee7b7;
+}
+
+.badge-red {
+  background: #7f1d1d;
+  color: #fca5a5;
+}
+
+.badge-amber {
+  background: #78350f;
+  color: #fcd34d;
+}
+
+/* ── Scenario context banner ── */
+.mm-context-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  background: #0d0d1f;
+  border-radius: 8px;
+  border: 1px solid #2d2d5e;
+}
+
+.mm-type-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.mm-type-badge.type-utilitarian    { background: #1e3a5f; color: #93c5fd; }
+.mm-type-badge.type-gender         { background: #3b1f5e; color: #c4b5fd; }
+.mm-type-badge.type-age            { background: #1e4d2b; color: #86efac; }
+.mm-type-badge.type-fitness        { background: #3f2010; color: #fdba74; }
+.mm-type-badge.type-social-status  { background: #1f2d3d; color: #7dd3fc; }
+.mm-type-badge.type-species        { background: #2a1a0a; color: #fcd34d; }
+.mm-type-badge.type-random         { background: #1f2937; color: #9ca3af; }
+
+.mm-attr-label {
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+.mm-attr-label strong {
+  color: #e5e7eb;
+}
+
+.mm-pedped-badge {
+  font-size: 0.75rem;
+  color: #6b7280;
+  padding: 2px 8px;
+  background: #1f2937;
+  border-radius: 99px;
+}
+
+/* ── Choice buttons ── */
+.mm-choice-row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.mm-btn {
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-family: inherit;
+  padding: 12px 20px;
+  transition: background 0.18s, transform 0.1s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.mm-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.mm-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.mm-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mm-btn-stay {
+  background: #1e3a5f;
+  color: #93c5fd;
+  flex: 1;
+  min-width: 160px;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.mm-btn-stay:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.mm-btn-swerve {
+  background: #7c2d12;
+  color: #fdba74;
+  flex: 1;
+  min-width: 160px;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.mm-btn-swerve:hover:not(:disabled) {
+  background: #9a3412;
+}
+
+.mm-choice-sub {
+  font-size: 0.72rem;
+  font-weight: 400;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.mm-btn-start {
+  background: #065f46;
+  color: #a7f3d0;
+  padding: 12px 28px;
+  font-weight: 600;
+}
+
+.mm-btn-start:hover:not(:disabled) {
+  background: #047857;
+}
+
+.mm-btn-cancel {
+  background: #1f2937;
+  color: #9ca3af;
+  padding: 10px 18px;
+}
+
+.mm-btn-cancel:hover:not(:disabled) {
+  background: #374151;
+}
+
+.mm-btn-sm {
+  padding: 7px 14px;
+  font-size: 0.82rem;
+}
+
+/* ── Actions row ── */
+.mm-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+/* ── Footer row ── */
+.mm-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  border-top: 1px solid #2d2d5e;
+  padding-top: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ── Hint text ── */
+.mm-hint {
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin: 6px 0 0;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+code.mm-filename {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.75rem;
+  background: #111827;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #a7f3d0;
+  word-break: break-all;
+}
+
+/* ── Complete stats ── */
+.mm-complete-stats {
+  display: flex;
+  gap: 32px;
+  margin-bottom: 12px;
+}
+
+.mm-stat {
+  text-align: center;
+  min-width: 80px;
+}
+
+.mm-stat-val {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+.mm-stat-lbl {
+  font-size: 0.72rem;
+  color: #6b7280;
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Spinner ── */
+.mm-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #2d2d5e;
+  border-top-color: #f59e0b;
+  border-radius: 50%;
+  animation: mm-spin 0.8s linear infinite;
+}
+
+@keyframes mm-spin {
+  to { transform: rotate(360deg); }
+}
+
+.mm-loading-text {
+  font-size: 0.95rem;
+  color: #d1d5db;
+  margin: 0;
+}
+
+.mm-loading-sub {
+  font-size: 0.82rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* ── Error ── */
+.mm-error {
+  background: #7f1d1d;
+  color: #fca5a5;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
