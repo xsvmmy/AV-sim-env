@@ -276,23 +276,57 @@ function RLPanel({ scenario, onRLStep }) {
         </div>
       </div>
 
-      {/* ── Crowd Credences ── */}
+      {/* ── Crowd Credences + Voting (combined) ── */}
       <div className="rl-section">
-        <div className="rl-section-title">Crowd Credences</div>
+        <div className="rl-section-title">
+          Crowd Credences
+          {result?.voting && !loadingNext && (
+            <span className="rl-voting-method-tag">
+              {result.voting.method === 'nash' ? '— Nash Equilibrium' : '— Variance'}
+            </span>
+          )}
+        </div>
+        {result?.voting && !loadingNext && (
+          <p className="rl-hint" style={{ marginTop: 0, marginBottom: 10 }}>
+            {result.voting.method === 'nash'
+              ? `Strong moral consensus (${(result.voting.split * 100).toFixed(0)}% gap) — Nash equilibrium: the dominant framework's choice is stable.`
+              : `Frameworks nearly tied (${(result.voting.split * 100).toFixed(0)}% gap) — variance voting minimises total moral disagreement.`
+            }
+          </p>
+        )}
         <div className="rl-credence-row">
           <span className="rl-credence-label">Deontological (stay)</span>
           <div className="rl-bar-track">
-            <div className="rl-bar deont" style={{ width: `${(currentScenario.credences.deontological * 100).toFixed(1)}%` }} />
+            <div className="rl-bar deont" style={{ width: `${result?.voting ? result.voting.deont_pct : (currentScenario.credences.deontological * 100).toFixed(1)}%` }} />
           </div>
-          <span className="rl-credence-pct">{(currentScenario.credences.deontological * 100).toFixed(1)}%</span>
+          <span className="rl-credence-pct">{result?.voting ? result.voting.deont_pct : (currentScenario.credences.deontological * 100).toFixed(1)}%</span>
         </div>
         <div className="rl-credence-row">
           <span className="rl-credence-label">Utilitarian (swerve)</span>
           <div className="rl-bar-track">
-            <div className="rl-bar util" style={{ width: `${(currentScenario.credences.utilitarian * 100).toFixed(1)}%` }} />
+            <div className="rl-bar util" style={{ width: `${result?.voting ? result.voting.util_pct : (currentScenario.credences.utilitarian * 100).toFixed(1)}%` }} />
           </div>
-          <span className="rl-credence-pct">{(currentScenario.credences.utilitarian * 100).toFixed(1)}%</span>
+          <span className="rl-credence-pct">{result?.voting ? result.voting.util_pct : (currentScenario.credences.utilitarian * 100).toFixed(1)}%</span>
         </div>
+        {result?.voting && !loadingNext && (
+          <div className="rl-compare" style={{ marginTop: 12 }}>
+            <div className="rl-compare-side">
+              <div className="rl-compare-label">Vote recommends</div>
+              <div className={`rl-compare-choice action-${result.voting.recommendation}`}>
+                {result.voting.recommendation === 'stay' ? '⬇️ Stay' : '↘️ Swerve'}
+              </div>
+            </div>
+            <div className="rl-compare-vs">
+              {result.voting.agent_matches ? '✅ Match' : '❌ Differ'}
+            </div>
+            <div className="rl-compare-side">
+              <div className="rl-compare-label">Agent chose</div>
+              <div className={`rl-compare-choice action-${result.action}`}>
+                {result.action === 'stay' ? '⬇️ Stay' : '↘️ Swerve'}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Result display ── */}
@@ -331,73 +365,9 @@ function RLPanel({ scenario, onRLStep }) {
             </div>
           </div>
 
-          <div className="rl-section rl-stats-bar">
-            <div className="rl-section-title">Training Stats</div>
-            <div className="rl-stats-row">
-              <div className="rl-stat">
-                <div className="rl-stat-val">{result.episode_count}</div>
-                <div className="rl-stat-lbl">Episodes</div>
-              </div>
-              <div className="rl-stat">
-                <div className={`rl-stat-val ${result.avg_reward >= 0 ? 'reward-pos' : 'reward-neg'}`}>
-                  {result.avg_reward >= 0 ? '+' : ''}{result.avg_reward.toFixed(3)}
-                </div>
-                <div className="rl-stat-lbl">Avg Reward</div>
-              </div>
-              <div className="rl-stat">
-                <div className="rl-stat-val">{(result.epsilon * 100).toFixed(1)}%</div>
-                <div className="rl-stat-lbl">Epsilon ε</div>
-              </div>
-            </div>
-          </div>
         </>
       )}
 
-      {/* ── Nash / Variance Vote — persists through feedback prompt, clears on next scenario ── */}
-      {result?.voting && !loadingNext && (
-        <div className="rl-section">
-          <div className="rl-section-title">
-            {result.voting.method === 'nash' ? 'Nash Equilibrium Vote' : 'Variance Vote'}
-          </div>
-          <p className="rl-hint">
-            {result.voting.method === 'nash'
-              ? `Strong moral consensus (${(result.voting.split * 100).toFixed(0)}% gap) — frameworks disagree significantly. Nash equilibrium: the dominant framework's choice is stable.`
-              : `Frameworks nearly tied (${(result.voting.split * 100).toFixed(0)}% gap) — variance voting minimises total moral disagreement.`
-            }
-          </p>
-          <div className="rl-credence-row" style={{ marginBottom: 6 }}>
-            <span className="rl-credence-label">Deontological → Stay</span>
-            <div className="rl-bar-track">
-              <div className="rl-bar deont" style={{ width: `${result.voting.deont_pct}%` }} />
-            </div>
-            <span className="rl-credence-pct">{result.voting.deont_pct}%</span>
-          </div>
-          <div className="rl-credence-row" style={{ marginBottom: 12 }}>
-            <span className="rl-credence-label">Utilitarian → Swerve</span>
-            <div className="rl-bar-track">
-              <div className="rl-bar util" style={{ width: `${result.voting.util_pct}%` }} />
-            </div>
-            <span className="rl-credence-pct">{result.voting.util_pct}%</span>
-          </div>
-          <div className="rl-compare">
-            <div className="rl-compare-side">
-              <div className="rl-compare-label">Vote recommends</div>
-              <div className={`rl-compare-choice action-${result.voting.recommendation}`}>
-                {result.voting.recommendation === 'stay' ? '⬇️ Stay' : '↘️ Swerve'}
-              </div>
-            </div>
-            <div className="rl-compare-vs">
-              {result.voting.agent_matches ? '✅ Match' : '❌ Differ'}
-            </div>
-            <div className="rl-compare-side">
-              <div className="rl-compare-label">Agent chose</div>
-              <div className={`rl-compare-choice action-${result.action}`}>
-                {result.action === 'stay' ? '⬇️ Stay' : '↘️ Swerve'}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Reward Log (collapsible) ── */}
       {runLog.length > 0 && (
@@ -416,7 +386,6 @@ function RLPanel({ scenario, onRLStep }) {
                     <th>Q(stay)</th>
                     <th>Q(swerve)</th>
                     <th>Reward</th>
-                    <th>Episodes</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -436,7 +405,6 @@ function RLPanel({ scenario, onRLStep }) {
                       <td className={entry.reward >= 0 ? 'reward-pos' : 'reward-neg'}>
                         {entry.reward >= 0 ? '+' : ''}{entry.reward}
                       </td>
-                      <td>{entry.episodes}</td>
                     </tr>
                   ))}
                 </tbody>

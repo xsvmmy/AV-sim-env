@@ -125,11 +125,6 @@ function Visualization({ scenario, onScenarioLoaded }) {
           </button>
         </div>
 
-        {rlPlayback?.episodeNum != null && (
-          <div className="rl-ep-counter">
-            Episode {rlPlayback.episodeNum} / {rlPlayback.totalEpisodes}
-          </div>
-        )}
 
         {/* Mode description — shown after a method is chosen */}
         {manualModeActive && (

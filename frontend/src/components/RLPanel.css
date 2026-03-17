@@ -43,6 +43,18 @@
   letter-spacing: 0.08em;
   color: #7c7c9e;
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rl-voting-method-tag {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #a78bfa;
+  text-transform: none;
+  letter-spacing: 0.02em;
 }
 
 .rl-section-subtitle {
