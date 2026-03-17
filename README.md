@@ -1,3 +1,4 @@
+# RECENT: Simulation Application w/ Nash/Variance Voting
 ## How to Run
 
 - Download SharedResponses.csv from Moral Machine dataset - https://osf.io/3hvt2/overview
