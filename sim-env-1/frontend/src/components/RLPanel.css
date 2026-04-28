@@ -1,0 +1,433 @@
+/* ============================================================
+   RLPanel.css — Styles for the RL Training Panel
+   ============================================================ */
+
+.rl-panel {
+  background: #1a1a2e;
+  border: 1px solid #2d2d4e;
+  border-radius: 12px;
+  padding: 24px;
+  margin-top: 32px;
+  color: #e0e0e0;
+  font-family: inherit;
+}
+
+.rl-panel-header {
+  margin-bottom: 20px;
+}
+
+.rl-panel-header h3 {
+  margin: 0 0 4px;
+  font-size: 1.2rem;
+  color: #a78bfa;
+  letter-spacing: 0.02em;
+}
+
+.rl-subtitle {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #9ca3af;
+}
+
+/* ── Section ── */
+.rl-section {
+  border-top: 1px solid #2d2d4e;
+  padding-top: 16px;
+  margin-top: 16px;
+}
+
+.rl-section-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7c7c9e;
+  margin-bottom: 12px;
+}
+
+.rl-section-subtitle {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #9ca3af;
+  margin: 12px 0 8px;
+}
+
+/* ── Button ── */
+.rl-btn {
+  background: #4c1d95;
+  border: none;
+  border-radius: 8px;
+  color: #e9d5ff;
+  cursor: pointer;
+  font-size: 0.88rem;
+  padding: 10px 18px;
+  transition: background 0.2s;
+}
+
+.rl-btn:hover:not(:disabled) {
+  background: #5b21b6;
+}
+
+.rl-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.rl-btn-run {
+  background: #065f46;
+  color: #a7f3d0;
+}
+
+.rl-btn-run:hover:not(:disabled) {
+  background: #047857;
+}
+
+/* ── Info rows ── */
+.rl-scenario-info {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rl-info-row,
+.rl-dispersion-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rl-label {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  min-width: 160px;
+  flex-shrink: 0;
+}
+
+.rl-value {
+  font-size: 0.88rem;
+  color: #f3f4f6;
+}
+
+.rl-value.mono {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.78rem;
+  background: #111827;
+  padding: 2px 6px;
+  border-radius: 4px;
+  word-break: break-all;
+}
+
+.rl-count {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+/* ── Badges ── */
+.rl-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 99px;
+}
+
+.badge-green {
+  background: #064e3b;
+  color: #6ee7b7;
+}
+
+.badge-red {
+  background: #7f1d1d;
+  color: #fca5a5;
+}
+
+.badge-amber {
+  background: #78350f;
+  color: #fcd34d;
+}
+
+/* ── Credence bars ── */
+.rl-credence-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.rl-credence-label {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  min-width: 175px;
+}
+
+.rl-bar-track {
+  flex: 1;
+  height: 10px;
+  background: #374151;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.rl-bar {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s ease;
+  min-width: 2px;
+}
+
+.rl-bar.deont {
+  background: linear-gradient(90deg, #6366f1, #818cf8);
+}
+
+.rl-bar.util {
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.rl-credence-pct {
+  font-size: 0.8rem;
+  color: #d1d5db;
+  min-width: 46px;
+  text-align: right;
+}
+
+/* ── Dispersion hint ── */
+.rl-hint {
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin: 6px 0 0;
+  font-style: italic;
+}
+
+/* ── Result grid ── */
+.rl-result-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.rl-result-item {
+  background: #111827;
+  border: 1px solid #2d2d4e;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.rl-result-label {
+  font-size: 0.72rem;
+  color: #6b7280;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.rl-result-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #f3f4f6;
+}
+
+.action-stay  { color: #60a5fa; }
+.action-swerve { color: #f59e0b; }
+
+.reward-pos { color: #34d399; }
+.reward-neg { color: #f87171; }
+
+/* ── Q-value bars ── */
+.rl-qvalue-section {
+  margin-top: 8px;
+}
+
+.rl-qvalue-theory {
+  margin-bottom: 10px;
+}
+
+.rl-qvalue-theory-label {
+  font-size: 0.75rem;
+  color: #a78bfa;
+  font-weight: 600;
+  margin-bottom: 4px;
+  text-transform: capitalize;
+}
+
+.rl-qvalue-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.rl-qvalue-action {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  min-width: 44px;
+}
+
+.qbar-track {
+  flex: 1;
+}
+
+.qbar {
+  background: #4b5563;
+}
+
+.qbar-pos {
+  background: linear-gradient(90deg, #059669, #10b981);
+}
+
+.qbar-neg {
+  background: linear-gradient(90deg, #dc2626, #ef4444);
+}
+
+.rl-qvalue-num {
+  font-size: 0.78rem;
+  color: #d1d5db;
+  min-width: 36px;
+  text-align: right;
+  font-family: monospace;
+}
+
+/* ── Human vs Agent compare ── */
+.rl-compare {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 16px;
+  padding: 12px 0;
+}
+
+.rl-compare-side {
+  text-align: center;
+}
+
+.rl-compare-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.rl-compare-choice {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.rl-compare-vs {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+/* ── Training stats ── */
+.rl-stats-bar {}
+
+.rl-stats-row {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.rl-stat {
+  text-align: center;
+  min-width: 80px;
+}
+
+.rl-stat-val {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #f3f4f6;
+}
+
+.rl-stat-lbl {
+  font-size: 0.72rem;
+  color: #6b7280;
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Error ── */
+.rl-error {
+  background: #7f1d1d;
+  color: #fca5a5;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  margin-top: 12px;
+}
+
+/* ── Multi-episode training ── */
+.rl-train-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.rl-episodes-input {
+  width: 64px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid #374151;
+  background: #111827;
+  color: #f3f4f6;
+  font-size: 0.9rem;
+  text-align: center;
+}
+.rl-episodes-input:focus { outline: 2px solid #7c3aed; }
+.rl-episodes-input:disabled { opacity: 0.5; }
+
+.rl-btn-stop {
+  background: #7f1d1d;
+  color: #fca5a5;
+}
+.rl-btn-stop:hover:not(:disabled) { background: #991b1b; }
+
+/* Episode history list */
+.rl-train-history { margin-top: 14px; }
+
+.rl-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.rl-history-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+  padding: 5px 8px;
+  background: #111827;
+  border-radius: 6px;
+  border: 1px solid #1f2937;
+}
+
+.rl-history-ep {
+  color: #6b7280;
+  min-width: 36px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rl-history-action {
+  min-width: 44px;
+  font-weight: 700;
+}
+
+.rl-history-method {
+  color: #a78bfa;
+  font-size: 0.72rem;
+  min-width: 60px;
+}
+
+.rl-history-reward {
+  font-family: monospace;
+  min-width: 52px;
+  font-size: 0.78rem;
+}
+
+.rl-history-match {
+  margin-left: auto;
+  font-size: 13px;
+}

@@ -1,0 +1,438 @@
+/* ── Layout ── */
+.visualization {
+  max-width: 1000px;
+}
+
+.viz-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.viz-header h2 {
+  font-size: 22px;
+  color: #2c3e50;
+  margin: 0;
+  flex: 1;
+}
+
+.btn-load-random {
+  background: #6366f1;
+  color: white;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+  white-space: nowrap;
+  font-size: 14px;
+}
+.btn-load-random:hover:not(:disabled) { background: #4f46e5; }
+.btn-load-random:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.viz-load-error {
+  font-size: 13px;
+  color: #e53e3e;
+  font-weight: 500;
+}
+
+.rl-ep-counter {
+  background: #a78bfa;
+  color: white;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 6px 16px;
+  border-radius: 20px;
+  letter-spacing: 0.03em;
+}
+
+.viz-main { position: relative; }
+
+/* ── Scenario info bar ── */
+.scenario-info-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 10px 16px;
+  background: #f8f9ff;
+  border-radius: 8px;
+  border: 1px solid #e8eaf6;
+}
+
+.sig-badge {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+.sig-green { background: #e8f5e9; color: #2e7d32; }
+.sig-red   { background: #ffebee; color: #c62828; }
+
+.lane-stat {
+  font-size: 13px;
+  color: #555;
+  font-weight: 500;
+}
+
+/* ═══════════════════════════════════════
+   TWO-LANE ROAD
+═══════════════════════════════════════ */
+.road-container {
+  position: relative;
+  width: 100%;
+  max-width: 540px;
+  height: 400px;
+  background: #404040;
+  border-radius: 16px;
+  margin: 0 auto 28px;
+  overflow: hidden;
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.28);
+}
+
+/* Lane header labels */
+.road-lane-label {
+  position: absolute;
+  top: 10px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+  z-index: 5;
+}
+.road-lane-label-1 { left: 25%; transform: translateX(-50%); }
+.road-lane-label-2 { left: 75%; transform: translateX(-50%); }
+
+/* Dashed center divider */
+.road-lane-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 3px;
+  margin-left: -1px;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.55) 0px,
+    rgba(255, 255, 255, 0.55) 22px,
+    transparent 22px,
+    transparent 44px
+  );
+  z-index: 2;
+}
+
+/* Road direction arrows (subtle) */
+.road-dir-arrow {
+  position: absolute;
+  top: 26px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.18);
+  z-index: 3;
+  animation: road-bounce 2s ease-in-out infinite;
+}
+.road-dir-1 { left: 25%; transform: translateX(-50%); }
+.road-dir-2 { left: 75%; transform: translateX(-50%); }
+
+@keyframes road-bounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%       { transform: translateX(-50%) translateY(6px); }
+}
+
+/* Crosswalk stripes */
+.road-crosswalk {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 42%;
+  height: 58px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.22) 0px,
+    rgba(255, 255, 255, 0.22) 24px,
+    transparent 24px,
+    transparent 48px
+  );
+  z-index: 1;
+}
+
+/* ── Character groups ── */
+.road-group {
+  position: absolute;
+  top: 45%;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all 0.3s;
+}
+
+.road-group-1 { left: 25%; transform: translate(-50%, -50%); }
+.road-group-2 { left: 75%; transform: translate(-50%, -50%); }
+
+.road-group-chars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  justify-content: center;
+  max-width: 130px;
+  padding: 7px 9px;
+  background: rgba(0, 0, 0, 0.38);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background 0.3s;
+}
+
+.road-char { font-size: 22px; line-height: 1.1; }
+.road-char-barrier { font-size: 26px; }
+
+.road-group-harmed .road-group-chars {
+  background: rgba(220, 53, 69, 0.55);
+  border-color: rgba(220, 53, 69, 0.7);
+  animation: shake 0.45s;
+}
+
+.road-harm-burst {
+  font-size: 30px;
+  margin-top: 4px;
+  animation: pop 0.4s ease-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25%       { transform: translateX(-5px); }
+  75%       { transform: translateX(5px); }
+}
+@keyframes pop {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { transform: scale(1.4); opacity: 1; }
+  100% { transform: scale(1);  opacity: 1; }
+}
+
+/* Traffic signal badge (near lane 1 pedestrians) */
+.road-signal {
+  position: absolute;
+  top: 56%;
+  left: 9%;
+  font-size: 20px;
+  z-index: 5;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
+}
+.road-signal-green { /* walk */ }
+.road-signal-red   { /* don't walk */ }
+
+/* ── Autonomous Vehicle ── */
+.road-av {
+  position: absolute;
+  z-index: 6;
+  transition: left 1.2s cubic-bezier(0.4, 0, 0.2, 1),
+              top  1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.road-av-icon {
+  font-size: 40px;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.55));
+  /* Rotate 🚙 so it faces downward (road goes top-to-bottom) */
+  display: block;
+  transform: rotate(90deg);
+}
+
+/* Passenger cabin shown above the car when AV has occupants */
+.av-cabin {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px;
+  background: rgba(37, 99, 235, 0.72);
+  border: 1px solid rgba(147, 197, 253, 0.75);
+  border-radius: 6px;
+  padding: 3px 5px;
+  max-width: 82px;
+  margin-bottom: 3px;
+}
+
+.av-passenger {
+  font-size: 13px;
+  line-height: 1.1;
+}
+
+/* Crash burst shown on AV when it hits a barrier */
+.av-harm-indicator {
+  font-size: 28px;
+  margin-top: 3px;
+  animation: pop 0.4s ease-out;
+}
+
+/* Shake the car icon on impact */
+.road-av-harmed .road-av-icon {
+  animation: av-crash 0.5s ease-out;
+}
+
+@keyframes av-crash {
+  0%   { filter: drop-shadow(0 3px 8px rgba(0,0,0,0.55)); }
+  20%  { filter: drop-shadow(0 0 12px rgba(239,68,68,0.9)); transform: rotate(90deg) translateY(-4px); }
+  40%  { filter: drop-shadow(0 0 12px rgba(239,68,68,0.9)); transform: rotate(90deg) translateY(4px); }
+  60%  { filter: drop-shadow(0 0 8px rgba(239,68,68,0.6));  transform: rotate(90deg) translateY(-2px); }
+  80%  { filter: drop-shadow(0 0 8px rgba(239,68,68,0.6));  transform: rotate(90deg) translateY(2px); }
+  100% { filter: drop-shadow(0 3px 8px rgba(0,0,0,0.55));   transform: rotate(90deg); }
+}
+
+/* AV position states — use translate(-50%, -50%) to center on the anchor point */
+.av-initial {
+  left: 25%;
+  top: 20%;
+  transform: translate(-50%, -50%);
+}
+.av-staying {
+  left: 25%;
+  top: 70%;
+  transform: translate(-50%, -50%);
+}
+.av-swerving {
+  left: 75%;
+  top: 45%;
+  transform: translate(-50%, -50%);
+}
+
+/* Direction hint */
+.road-direction-hint {
+  position: absolute;
+  left: 25%;
+  top: 32%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.3);
+  z-index: 3;
+  pointer-events: none;
+  animation: road-bounce 2s ease-in-out infinite;
+}
+
+/* Action result label */
+.road-result-overlay {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.82);
+  color: white;
+  padding: 9px 20px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+  z-index: 10;
+  animation: slideDown 0.4s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateX(-50%) translateY(-14px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── RL Overlays ── */
+.road-rl-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 15, 30, 0.72);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #e0e0e0;
+  z-index: 20;
+  border-radius: 16px;
+  font-size: 15px;
+}
+
+.road-rl-spinner {
+  width: 42px;
+  height: 42px;
+  border: 4px solid rgba(167, 139, 250, 0.3);
+  border-top-color: #a78bfa;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 14px;
+}
+
+.road-rl-deciding {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(92, 33, 182, 0.88);
+  color: #e9d5ff;
+  padding: 10px 22px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 15px;
+  z-index: 20;
+  white-space: nowrap;
+  animation: pulse 0.7s ease-in-out infinite;
+}
+
+@keyframes spin  { to { transform: rotate(360deg); } }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
+}
+
+/* ── Empty-state overlay (shown before any scenario is loaded) ── */
+.road-empty-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.65);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 14px;
+  padding: 14px 24px;
+  border-radius: 12px;
+  text-align: center;
+  z-index: 8;
+  pointer-events: none;
+  line-height: 1.5;
+}
+
+/* ── Idle overlay (shown when a scenario is loaded but RL is not running) ── */
+.road-idle-overlay {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
+  padding: 7px 18px;
+  border-radius: 20px;
+  white-space: nowrap;
+  z-index: 8;
+  pointer-events: none;
+}
+
+/* ── Back button ── */
+.btn-new-scenario {
+  padding: 11px 22px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: #2ecc71;
+  color: white;
+  transition: background 0.2s;
+}
+.btn-new-scenario:hover { background: #27ae60; }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .road-container { height: 340px; }
+}
