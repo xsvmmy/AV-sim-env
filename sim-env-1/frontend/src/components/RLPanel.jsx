@@ -36,7 +36,7 @@ function RLPanel({ scenario, onRLStep }) {
       Criminal: '🦹', MaleExecutive: '👔', FemaleExecutive: '👩‍💼',
       FemaleAthlete: '🏃‍♀️', MaleAthlete: '🏃‍♂️',
       FemaleDoctor: '👩‍⚕️', MaleDoctor: '👨‍⚕️',
-      Dog: '🐕', Cat: '🐈', Barricade: '🚧',
+      Dog: '🐕', Cat: '🐈', Barricade: '▩',
     };
     return map[name] || '👤';
   };
@@ -177,11 +177,11 @@ function RLPanel({ scenario, onRLStep }) {
           />
           {!isTraining ? (
             <button className="rl-btn rl-btn-run" onClick={handleTrainEpisodes}>
-              ▶ Run Visual Training
+              Run Visual Training
             </button>
           ) : (
             <button className="rl-btn rl-btn-stop" onClick={handleStopTraining}>
-              ⏹ Stop ({trainEpisodeNum}/{trainEpisodes})
+              Stop ({trainEpisodeNum}/{trainEpisodes})
             </button>
           )}
         </div>
@@ -198,7 +198,9 @@ function RLPanel({ scenario, onRLStep }) {
                   <span className={`rl-history-reward ${h.reward >= 0 ? 'reward-pos' : 'reward-neg'}`}>
                     {h.reward >= 0 ? '+' : ''}{h.reward.toFixed(3)}
                   </span>
-                  <span className="rl-history-match">{h.matches ? '✅' : '❌'}</span>
+                  <span className={`rl-history-match ${h.matches ? 'match-yes' : 'match-no'}`}>
+                    {h.matches ? 'Y' : 'N'}
+                  </span>
                 </div>
               ))}
             </div>
@@ -242,7 +244,7 @@ function RLPanel({ scenario, onRLStep }) {
           <div className="rl-info-row">
             <span className="rl-label">Signal</span>
             <span className={`rl-badge ${scenario.traffic_light === 'Green' ? 'badge-green' : 'badge-red'}`}>
-              {scenario.traffic_light === 'Green' ? '🚶 Walk' : '🚫 Don\'t Walk'}
+              {scenario.traffic_light === 'Green' ? 'Walk' : 'Stop'}
             </span>
           </div>
         </div>
@@ -275,7 +277,7 @@ function RLPanel({ scenario, onRLStep }) {
             <span className="rl-label">Var([C_d, C_u])</span>
             <span className="rl-value mono">{dispersion.toFixed(4)}</span>
             <span className={`rl-badge ${isNash ? 'badge-green' : 'badge-amber'}`}>
-              {isNash ? '✅ Nash' : '⚠️ Variance'}
+              {isNash ? 'Nash' : 'Variance'}
             </span>
           </div>
           <p className="rl-hint">
@@ -294,7 +296,7 @@ function RLPanel({ scenario, onRLStep }) {
           onClick={handleRunAgent}
           disabled={loadingAgent || isTraining}
         >
-          {loadingAgent ? '⏳ Running…' : '▶ Run Agent Once'}
+          {loadingAgent ? 'Running…' : 'Run Agent Once'}
         </button>
       </div>
 
@@ -309,7 +311,7 @@ function RLPanel({ scenario, onRLStep }) {
               <div className="rl-result-item">
                 <div className="rl-result-label">Action</div>
                 <div className={`rl-result-value action-${result.action}`}>
-                  {result.action === 'stay' ? '⬇️ Stay' : '↘️ Swerve'}
+                  {result.action === 'stay' ? 'Stay in Lane' : 'Swerve'}
                 </div>
               </div>
               <div className="rl-result-item">
@@ -325,7 +327,7 @@ function RLPanel({ scenario, onRLStep }) {
               <div className="rl-result-item">
                 <div className="rl-result-label">Harmed</div>
                 <div className="rl-result-value">
-                  {result.harmed_group === 'passengers' ? '🛣️ Lane 2' : '🚶 Pedestrians'}
+                  {result.harmed_group === 'passengers' ? 'Lane 2' : 'Pedestrians'}
                   {' '}×{result.harmed_count}
                 </div>
               </div>
@@ -357,16 +359,16 @@ function RLPanel({ scenario, onRLStep }) {
               <div className="rl-compare-side">
                 <div className="rl-compare-label">Human majority</div>
                 <div className={`rl-compare-choice action-${result.human_choice}`}>
-                  {result.human_choice === 'stay' ? '⬇️ Stay' : '↘️ Swerve'}
+                  {result.human_choice === 'stay' ? 'Stay in Lane' : 'Swerve'}
                 </div>
               </div>
-              <div className="rl-compare-vs">
-                {result.agent_matches_human ? '✅ Match' : '❌ Differ'}
+              <div className={`rl-compare-vs ${result.agent_matches_human ? 'match-yes' : 'match-no'}`}>
+                {result.agent_matches_human ? 'Match' : 'Differ'}
               </div>
               <div className="rl-compare-side">
                 <div className="rl-compare-label">Agent decision</div>
                 <div className={`rl-compare-choice action-${result.action}`}>
-                  {result.action === 'stay' ? '⬇️ Stay' : '↘️ Swerve'}
+                  {result.action === 'stay' ? 'Stay in Lane' : 'Swerve'}
                 </div>
               </div>
             </div>

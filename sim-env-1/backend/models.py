@@ -172,6 +172,17 @@ class CustomAgentPredictResponse(BaseModel):
     harmed_count: int
 
 
+class HumanFeedbackRequest(BaseModel):
+    human_choice: str = Field(..., pattern="^(stay|swerve)$")
+    alpha: float = Field(..., ge=0.0, le=1.0)
+
+
+class HumanFeedbackResponse(BaseModel):
+    name: str
+    updated_credences: dict
+    credence_delta: dict
+
+
 # ============================================================================
 # RL / CSV Simulation Schemas
 # ============================================================================

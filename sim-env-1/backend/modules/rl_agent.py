@@ -46,7 +46,7 @@ class MoralRLAgent:
     def __init__(
         self,
         alpha: float = 0.1,
-        gamma: float = 0.9,
+        gamma: float = 0.5,
         epsilon: float = 0.3,
         epsilon_min: float = 0.05,
         epsilon_decay: float = 0.995,

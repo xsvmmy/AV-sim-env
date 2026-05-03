@@ -154,6 +154,25 @@ export async function getCustomAgents() {
 }
 
 /**
+ * Submit human feedback to nudge a custom agent's credences
+ */
+export async function submitHumanFeedback(agentName, humanChoice, alpha) {
+  return fetchAPI(`/api/custom-model/${encodeURIComponent(agentName)}/feedback`, {
+    method: 'POST',
+    body: JSON.stringify({ human_choice: humanChoice, alpha }),
+  });
+}
+
+/**
+ * Delete a saved custom agent by name
+ */
+export async function deleteCustomAgent(agentName) {
+  return fetchAPI(`/api/custom-model/${encodeURIComponent(agentName)}`, {
+    method: 'DELETE',
+  });
+}
+
+/**
  * Run a scenario through a named custom agent
  */
 export async function predictWithCustomAgent(agentName, passengers, pedestrians, trafficLight) {

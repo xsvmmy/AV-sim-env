@@ -1,0 +1,9 @@
+{
+  "name": "test 2",
+  "credences": {
+    "deontological": 0.6,
+    "utilitarian": 0.4
+  },
+  "training_count": 10,
+  "created_at": "2026-05-03T15:25:30.935676"
+}

@@ -71,6 +71,21 @@ class CustomAgent:
             "harmed_count":        outcome["harmed_count"],
         }
 
+    def apply_feedback(self, human_choice: str, alpha: float) -> None:
+        """Nudge credences toward the moral theory implied by the human's choice.
+
+        stay   → reinforce deontological
+        swerve → reinforce utilitarian
+        alpha  → step size (0 = no change, 1 = jump straight to human's preference)
+        """
+        target_deont = 1.0 if human_choice == "stay" else 0.0
+        c_d = self.credences["deontological"]
+        new_deont = round(max(0.0, min(1.0, c_d + alpha * (target_deont - c_d))), 6)
+        self.credences = {
+            "deontological": new_deont,
+            "utilitarian":   round(1.0 - new_deont, 6),
+        }
+
     def save(self, agents_dir: str) -> None:
         os.makedirs(agents_dir, exist_ok=True)
         data = {

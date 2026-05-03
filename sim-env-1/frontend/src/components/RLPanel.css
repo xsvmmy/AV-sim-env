@@ -18,9 +18,10 @@
 
 .rl-panel-header h3 {
   margin: 0 0 4px;
-  font-size: 1.2rem;
-  color: #a78bfa;
-  letter-spacing: 0.02em;
+  font-size: 1.1rem;
+  color: #93c5fd;
+  letter-spacing: 0.01em;
+  font-weight: 700;
 }
 
 .rl-subtitle {
@@ -313,9 +314,14 @@
 }
 
 .rl-compare-vs {
-  font-size: 1.1rem;
+  font-size: 13px;
   font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
 }
+.match-yes { color: #34d399; background: rgba(5,150,105,0.15); }
+.match-no  { color: #f87171; background: rgba(220,38,38,0.15); }
 
 /* ── Training stats ── */
 .rl-stats-bar {}

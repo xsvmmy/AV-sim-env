@@ -1,112 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { getRLScenarioRandom, trainCustomAgent, predictWithCustomAgent } from '../utils/api';
-import './Visualization.css';
+import ScenarioRoad from './ScenarioRoad';
 import './CustomModelMode.css';
-
-const EMOJI_MAP = {
-  Man: '👨', Woman: '👩', Pregnant: '🤰', Stroller: '👶',
-  OldMan: '👴', OldWoman: '👵', Boy: '👦', Girl: '👧',
-  Homeless: '🧑', LargeWoman: '👩', LargeMan: '👨',
-  Criminal: '🦹', MaleExecutive: '👔', FemaleExecutive: '👩‍💼',
-  FemaleAthlete: '🏃‍♀️', MaleAthlete: '🏃‍♂️',
-  FemaleDoctor: '👩‍⚕️', MaleDoctor: '👨‍⚕️',
-  Dog: '🐕', Cat: '🐈', Barricade: '🚧',
-};
-const charEmoji = (name) => EMOJI_MAP[name] || '👤';
-
-// ── Shared road visualization ─────────────────────────────────────────────
-
-function ScenarioRoad({ scenario, action, animPhase, harmedGroup, showLoadingOverlay, showDecidingOverlay }) {
-  if (!scenario) {
-    return (
-      <div className="road-container">
-        {showLoadingOverlay ? (
-          <div className="road-rl-overlay">
-            <div className="road-rl-spinner" />
-            <p>Loading scenario…</p>
-          </div>
-        ) : (
-          <div className="road-empty-overlay"><span>Loading…</span></div>
-        )}
-      </div>
-    );
-  }
-
-  const lane1Chars     = scenario.lane1_chars     ?? scenario.pedestrians ?? [];
-  const lane2Chars     = scenario.lane2_chars     ?? (scenario.passengers?.filter(p => p !== 'Barricade') ?? []);
-  const lane1IsBarrier = scenario.lane1_is_barrier ?? false;
-  const lane2IsBarrier = scenario.lane2_is_barrier ?? (scenario.passengers?.includes('Barricade') ?? false);
-  const passengersInAV = scenario.passengers_in_av ?? [];
-
-  const effectiveHarmed = harmedGroup
-    ?? (action === 'stay' ? 'pedestrians' : action === 'swerve' ? 'passengers' : null);
-
-  const isLane1Harmed = animPhase === 'result' && effectiveHarmed === 'pedestrians';
-  const isLane2Harmed = animPhase === 'result' && effectiveHarmed === 'passengers';
-  const isAVHarmed    = (isLane1Harmed && lane1IsBarrier) || (isLane2Harmed && lane2IsBarrier);
-
-  const avClass = !action || animPhase === 'idle'
-    ? 'av-initial'
-    : action === 'swerve' ? 'av-swerving' : 'av-staying';
-
-  return (
-    <div className="road-container">
-      <div className="road-lane-label road-lane-label-1">LANE 1 — AV</div>
-      <div className="road-lane-label road-lane-label-2">LANE 2 — SWERVE</div>
-      <div className="road-lane-divider" />
-      <div className="road-dir-arrow road-dir-1">▼</div>
-      <div className="road-dir-arrow road-dir-2">▼</div>
-      <div className="road-crosswalk" />
-
-      <div className={`road-group road-group-1 ${isLane1Harmed && !lane1IsBarrier ? 'road-group-harmed' : ''}`}>
-        <div className="road-group-chars">
-          {lane1IsBarrier
-            ? <span className="road-char road-char-barrier">🚧🚧</span>
-            : lane1Chars.map((p, i) => <span key={i} className="road-char" title={p}>{charEmoji(p)}</span>)}
-        </div>
-        {isLane1Harmed && !lane1IsBarrier && <div className="road-harm-burst">💥</div>}
-      </div>
-
-      <div className={`road-signal ${scenario.traffic_light === 'Green' ? 'road-signal-green' : 'road-signal-red'}`}>
-        {scenario.traffic_light === 'Green' ? '🚶' : '🚫'}
-      </div>
-
-      <div className={`road-group road-group-2 ${isLane2Harmed && !lane2IsBarrier ? 'road-group-harmed' : ''}`}>
-        <div className="road-group-chars">
-          {lane2IsBarrier
-            ? <span className="road-char road-char-barrier">🚧🚧</span>
-            : lane2Chars.map((p, i) => <span key={i} className="road-char" title={p}>{charEmoji(p)}</span>)}
-        </div>
-        {isLane2Harmed && !lane2IsBarrier && <div className="road-harm-burst">💥</div>}
-      </div>
-
-      <div className={`road-av ${avClass} ${isAVHarmed ? 'road-av-harmed' : ''}`}>
-        {passengersInAV.length > 0 && (
-          <div className="av-cabin">
-            {passengersInAV.map((p, i) => <span key={i} className="av-passenger" title={p}>{charEmoji(p)}</span>)}
-          </div>
-        )}
-        <div className="road-av-icon">🚙</div>
-        {isAVHarmed && <div className="av-harm-indicator">💥</div>}
-      </div>
-
-      {animPhase === 'result' && action && (
-        <div className="road-result-overlay">
-          {action === 'stay' ? '⬇️ Stayed in Lane 1' : '↘️ Swerved to Lane 2'}
-        </div>
-      )}
-      {showDecidingOverlay && (
-        <div className="road-rl-deciding">🤖 Agent deciding…</div>
-      )}
-      {showLoadingOverlay && (
-        <div className="road-rl-overlay">
-          <div className="road-rl-spinner" />
-          <p>Loading scenario…</p>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ── Main component ────────────────────────────────────────────────────────
 
@@ -261,7 +156,7 @@ function CustomModelMode() {
       {/* SETUP */}
       {phase === 'setup' && (
         <div className="cm-card cm-setup">
-          <h2 className="cm-title">🤖 Custom Model</h2>
+          <h2 className="cm-title">Custom Model Training</h2>
           <p className="cm-desc">
             Label a set of ethical dilemma scenarios with your own moral choices.
             We'll train a personal RL agent that reflects your preferences.
@@ -325,12 +220,12 @@ function CustomModelMode() {
               <p className="cm-choice-prompt">What would you choose?</p>
               <div className="cm-choice-row">
                 <button className="cm-choice-btn cm-choice-stay" onClick={() => handleChoice('stay')}>
-                  <span className="cm-choice-icon">⬇️</span>
+                  <span className="cm-choice-icon cm-choice-icon-stay" />
                   <span className="cm-choice-main">Stay in Lane</span>
                   <span className="cm-choice-sub">Pedestrians at risk</span>
                 </button>
                 <button className="cm-choice-btn cm-choice-swerve" onClick={() => handleChoice('swerve')}>
-                  <span className="cm-choice-icon">↘️</span>
+                  <span className="cm-choice-icon cm-choice-icon-swerve" />
                   <span className="cm-choice-main">Swerve</span>
                   <span className="cm-choice-sub">Passengers at risk</span>
                 </button>
@@ -343,7 +238,7 @@ function CustomModelMode() {
               <p className="cm-decided-label">
                 You chose:{' '}
                 <strong className={`cm-choice-tag cm-tag-${userChoice}`}>
-                  {userChoice === 'stay' ? '⬇️ Stay in Lane' : '↘️ Swerve'}
+                  {userChoice === 'stay' ? 'Stay in Lane' : 'Swerve'}
                 </strong>
               </p>
               <div className="cm-nav-row">
@@ -360,8 +255,8 @@ function CustomModelMode() {
       {/* NAMING */}
       {phase === 'naming' && (
         <div className="cm-card cm-naming">
-          <div className="cm-big-icon">✅</div>
-          <h2 className="cm-title">All {totalScenarios} scenarios labeled!</h2>
+          <div className="cm-done-check" />
+          <h2 className="cm-title">All {totalScenarios} scenarios labeled</h2>
           <p className="cm-desc">Give your agent a name before we train it.</p>
           <div className="cm-field">
             <label className="cm-label">Agent name</label>
@@ -399,8 +294,8 @@ function CustomModelMode() {
       {/* DONE */}
       {phase === 'done' && createdAgent && (
         <div className="cm-card cm-done">
-          <div className="cm-big-icon">🎉</div>
-          <h2 className="cm-title">Agent "{createdAgent.name}" created!</h2>
+          <div className="cm-done-check" />
+          <h2 className="cm-title">Agent "{createdAgent.name}" ready</h2>
           <p className="cm-desc">
             Trained on {createdAgent.training_count} scenarios. Your moral profile:
           </p>
@@ -427,7 +322,7 @@ function CustomModelMode() {
             </div>
           </div>
           <button className="cm-btn cm-btn-primary cm-btn-lg" onClick={handleStartTesting}>
-            🧪 Test Your Agent
+            Test Your Agent
           </button>
         </div>
       )}
@@ -437,7 +332,7 @@ function CustomModelMode() {
         <div className="cm-card cm-testing">
           <div className="cm-test-header">
             <h2 className="cm-title">Testing "{createdAgent.name}"</h2>
-            <span className="cm-agent-badge">🤖 {createdAgent.name}</span>
+            <span className="cm-agent-badge">{createdAgent.name}</span>
           </div>
 
           {error && <div className="cm-error">{error}</div>}
@@ -457,7 +352,7 @@ function CustomModelMode() {
                 <div className="cm-result-item">
                   <div className="cm-result-label">Agent Decision</div>
                   <div className={`cm-result-value cm-action-${agentDecision.action}`}>
-                    {agentDecision.action === 'stay' ? '⬇️ Stay' : '↘️ Swerve'}
+                    {agentDecision.action === 'stay' ? 'Stay in Lane' : 'Swerve'}
                   </div>
                 </div>
                 <div className="cm-result-item">
@@ -467,7 +362,7 @@ function CustomModelMode() {
                 <div className="cm-result-item">
                   <div className="cm-result-label">Harmed</div>
                   <div className="cm-result-value">
-                    {agentDecision.harmed_group === 'pedestrians' ? '🚶 Pedestrians' : '🛣️ Lane 2'}
+                    {agentDecision.harmed_group === 'pedestrians' ? 'Pedestrians' : 'Lane 2'}
                     {' '}×{agentDecision.harmed_count}
                   </div>
                 </div>

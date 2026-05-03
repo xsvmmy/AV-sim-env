@@ -3,6 +3,7 @@ API routes for Custom Agent training and prediction.
 """
 
 import os
+from pathlib import Path
 from typing import List
 from fastapi import APIRouter, HTTPException, status
 
@@ -11,6 +12,8 @@ from models import (
     CustomAgentInfo,
     CustomAgentPredictRequest,
     CustomAgentPredictResponse,
+    HumanFeedbackRequest,
+    HumanFeedbackResponse,
 )
 from modules.custom_agent import CustomAgent
 
@@ -46,6 +49,38 @@ async def list_custom_agents():
         CustomAgentInfo(**a)
         for a in CustomAgent.list_agents(os.path.abspath(_AGENTS_DIR))
     ]
+
+
+@router.delete("/{agent_name}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_custom_agent(agent_name: str):
+    """Delete a saved custom agent by name."""
+    path = Path(os.path.abspath(_AGENTS_DIR)) / f"{agent_name}.json"
+    if not path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Agent '{agent_name}' not found",
+        )
+    path.unlink()
+
+
+@router.post("/{agent_name}/feedback", response_model=HumanFeedbackResponse)
+async def apply_human_feedback(agent_name: str, request: HumanFeedbackRequest):
+    """Nudge agent credences based on a single human feedback choice."""
+    agent = CustomAgent.load(os.path.abspath(_AGENTS_DIR), agent_name)
+    if agent is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Agent '{agent_name}' not found",
+        )
+    old_credences = dict(agent.credences)
+    agent.apply_feedback(request.human_choice, request.alpha)
+    agent.save(os.path.abspath(_AGENTS_DIR))
+    delta = {k: round(agent.credences[k] - old_credences[k], 6) for k in old_credences}
+    return HumanFeedbackResponse(
+        name=agent.name,
+        updated_credences=agent.credences,
+        credence_delta=delta,
+    )
 
 
 @router.post("/{agent_name}/predict", response_model=CustomAgentPredictResponse)
